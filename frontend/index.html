@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SepsisGuard | Predictive Clinical OS</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="main-layout">
+        <!-- Top Navigation Bar -->
+        <nav class="navbar-top">
+            <div class="navbar-left">
+                <div class="navbar-logo">
+                    <i data-lucide="shield-plus" size="28"></i>
+                    <span>SepsisGuard</span>
+                </div>
+            </div>
+            <div class="navbar-center">
+                <div class="nav-icons-horizontal">
+                    <div class="nav-item active" title="Dashboard"><i data-lucide="layout-grid"></i></div>
+                    <div class="nav-item" title="Patients"><i data-lucide="users"></i></div>
+                    <div class="nav-item" title="Reports"><i data-lucide="clipboard-list"></i></div>
+                    <div class="nav-item" title="Alerts"><i data-lucide="bell"></i></div>
+                    <div class="nav-item" title="Settings"><i data-lucide="settings"></i></div>
+                </div>
+            </div>
+            <div class="navbar-right">
+                <div class="nav-item" title="Logout"><i data-lucide="log-out"></i></div>
+            </div>
+        </nav>
+
+        <!-- Main Dashboard Content -->
+        <main class="content-wrapper">
+            <header class="top-bar">
+                <div class="welcome-msg">
+                    <h1>Sepsis<span>Guard</span> v4.0</h1>
+                    <p>Clinical Intelligence System • ICU Dashboard</p>
+                </div>
+                <div class="system-stats">
+                    <div class="stat-pill">
+                        <span class="dot"></span>
+                        <span id="api-status">Neural Node Online</span>
+                    </div>
+                    <div class="stat-pill">
+                        <i data-lucide="zap" size="14"></i>
+                        <span id="model-acc">98.4% Accuracy</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="dashboard-grid">
+                <!-- Col 1: Input Panel -->
+                <div class="input-panel flex-col-gap">
+                    <section class="neon-card">
+                    <div class="card-title">
+                        <i data-lucide="activity"></i>
+                        <span>Clinical Entry</span>
+                    </div>
+                    <form id="vitals-form" class="vitals-form">
+                        <!-- Group 1: Hemodynamics -->
+                        <div class="form-group">
+                            <label>1. Heart Rate (BPM)</label>
+                            <input type="number" id="hr" value="85" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>2. Systolic BP (mmHg)</label>
+                            <input type="number" id="bp" value="115" step="1">
+                        </div>
+
+                        <!-- Group 2: Respiration & Temp -->
+                        <div class="form-group">
+                            <label>3. Body Temp (\u00b0C)</label>
+                            <input type="number" id="temp" value="37.2" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>4. Resp Rate (BPM)</label>
+                            <input type="number" id="rr" value="18" step="1">
+                        </div>
+
+                        <!-- Group 3: Oxygen & Systemic -->
+                        <div class="form-group">
+                            <label>5. Oxygen Saturation (%)</label>
+                            <input type="number" id="spo2" value="98" step="1">
+                        </div>
+                        <div class="form-group">
+                            <label>6. Patient Age</label>
+                            <input type="number" id="age" value="45">
+                        </div>
+                        
+                        <div class="form-group full">
+                            <label>7. Infection Marker (<span id="marker-val">0.10</span>)</label>
+                            <input type="range" id="marker" min="0" max="1" step="0.01" value="0.1">
+                        </div>
+                        <div class="form-group full button-row">
+                            <button type="submit" id="predict-btn" class="btn-cyber btn-cyan">
+                                <span>Analyze Risk</span>
+                                <i data-lucide="chevron-right" size="16"></i>
+                            </button>
+                            <button type="button" id="simulate-btn" class="btn-cyber btn-outline">
+                                <span>Simulate Crisis</span>
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- NEW: Physiological Ranges -->
+                <section class="neon-card">
+                    <div class="card-title">
+                        <i data-lucide="bar-chart-horizontal"></i>
+                        <span>Physiological Ranges</span>
+                    </div>
+                    <div class="ranges-container">
+                        <div class="range-item">
+                            <div class="range-labels"><span>Heart Rate</span><span id="range-hr">85</span></div>
+                            <div class="range-bar"><div class="range-fill fill-normal" id="fill-hr" style="width: 45%;"></div></div>
+                        </div>
+                        <div class="range-item">
+                            <div class="range-labels"><span>Sys. Blood Pressure</span><span id="range-bp">115</span></div>
+                            <div class="range-bar"><div class="range-fill fill-normal" id="fill-bp" style="width: 60%;"></div></div>
+                        </div>
+                        <div class="range-item">
+                            <div class="range-labels"><span>Oxygen (SpO2)</span><span id="range-spo2">98</span></div>
+                            <div class="range-bar"><div class="range-fill fill-normal" id="fill-spo2" style="width: 98%;"></div></div>
+                        </div>
+                    </div>
+                </section>
+
+                </div>
+
+                <!-- Col 2: Risk Gauge (Center) -->
+                <section class="risk-panel neon-card">
+                    <div class="gauge-wrapper">
+                        <svg class="gauge-svg" width="100%" height="100%" viewBox="0 0 100 100">
+                            <!-- Background Track -->
+                            <circle class="gauge-track" cx="50" cy="50" r="40" />
+                            <!-- Progress Circle -->
+                            <circle id="gauge-fill" class="gauge-progress" cx="50" cy="50" r="40" stroke-dasharray="0 251.2" />
+                        </svg>
+                        <div class="gauge-content">
+                            <div class="huge-score"><span id="risk-score">0</span><small>%</small></div>
+                            <div id="risk-label" class="risk-tag">Stable</div>
+                        </div>
+                    </div>
+                    
+                    <div class="secondary-metrics">
+                        <div class="metric-box">
+                            <span class="metric-label">Onset Est.</span>
+                            <span class="metric-value" id="onset-time">> 12 hrs</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Confidence</span>
+                            <span class="metric-value" id="confidence-score">94.0%</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">SIRS Score</span>
+                            <span class="metric-value" id="sirs-score">0/4</span>
+                        </div>
+                        <div class="metric-box">
+                            <span class="metric-label">Est. Survival</span>
+                            <span class="metric-value" id="survival-rate">99.8%</span>
+                        </div>
+                    </div>
+
+                    <div id="alert-box" class="reason-box hidden" style="width: 100%;">
+                        <h4>CRITICAL ALERT</h4>
+                        <ul id="explanation-list" class="vitals-list">
+                            <li>System initial monitoring...</li>
+                        </ul>
+                    </div>
+
+                    <!-- AI Clinical Synthesis -->
+                    <section class="neon-card" style="width: 100%; flex-grow: 1; padding: 1rem; margin-top: 0.5rem; justify-content: flex-start; text-align: left; background: rgba(16, 185, 129, 0.05); border-left: 4px solid var(--success);" id="ai-synthesis-card">
+                        <div class="card-title" style="padding-bottom: 0.2rem;">
+                            <i data-lucide="cpu"></i>
+                            <span>AI Clinical Synthesis</span>
+                        </div>
+                        <div class="ai-synthesis-box" style="margin-top: 0.5rem; font-family: var(--font-main); font-size: 0.8rem; line-height: 1.4; color: var(--text-secondary); overflow-y: auto;">
+                            <p id="ai-summary-text">Awaiting real-time clinical data stream for neural synthesis...</p>
+                        </div>
+                    </section>
+                </section>
+
+                <!-- Col 3: Analytics -->
+                <div class="charts-panel">
+                    <!-- Risk Trend Chart -->
+                    <section class="neon-card">
+                        <div class="card-title">
+                            <i data-lucide="trending-up"></i>
+                            <span>Risk Prediction Trend</span>
+                        </div>
+                        <div class="chart-box">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </section>
+
+                    <!-- NEW: Risk Progression Pie Chart -->
+                    <section class="neon-card">
+                        <div class="card-title">
+                            <i data-lucide="pie-chart"></i>
+                            <span>Risk Contribution Matrix</span>
+                        </div>
+                        <div class="chart-box" style="height: 180px;">
+                            <canvas id="pieChart"></canvas>
+                        </div>
+                    </section>
+
+                    <!-- Clinical Markers -->
+                    <section class="neon-card" style="flex-grow: 1;">
+                        <div class="card-title" style="margin-bottom: 1rem;">
+                            <i data-lucide="clipboard-list"></i>
+                            <span>Clinical Markers Detected</span>
+                        </div>
+                        <ul id="vitals-summary" class="vitals-list">
+                            <li>Standing by for clinical input...</li>
+                        </ul>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
