@@ -35,27 +35,38 @@ _prev_alert = {pid: None for pid in PATIENTS}
 def _init_state(pid):
     info = PATIENTS[pid]
     risk = info["base_risk"]
+    vitals = {
+        "Heart_Rate":        round(80  + risk * 0.38   + random.gauss(0, 2), 1),
+        "Temperature":       round(37.0 + risk * 0.018 + random.gauss(0, 0.1), 2),
+        "Blood_Pressure":    round(120  - risk * 0.40  + random.gauss(0, 3), 1),
+        "Resp_Rate":         round(16   + risk * 0.09  + random.gauss(0, 1), 1),
+        "Oxygen_Level":      round(99   - risk * 0.09  + random.gauss(0, 0.5), 1),
+        "Infection_Marker":  round(max(0, min(1, risk / 100 + random.gauss(0, 0.02))), 3),
+        "Age": info["age"],
+    }
+    
+    ml_res = run_ml_pipeline(pid, vitals, generate_ai=True)
+    if not ml_res:
+        ml_res = {
+            "risk_score": float(risk),
+            "risk_level": "High" if risk >= 50 else ("Medium" if risk >= 27 else "Low"),
+            "risk_color": "#ef4444" if risk >= 50 else ("#f59e0b" if risk >= 27 else "#10b981"),
+            "alert_level": "CRITICAL" if risk >= 50 else ("WARNING" if risk >= 27 else "STABLE"),
+            "sirs_score": 0,
+            "explanation": [],
+            "contributions": {},
+            "shap_explanation": {},
+            "ai_synthesis": "Initializing clinical AI engine..."
+        }
+
     return {
         **info,
-        "Heart_Rate":        80  + risk * 0.3   + random.gauss(0, 3),
-        "Temperature":       37.0 + risk * 0.012 + random.gauss(0, 0.2),
-        "Blood_Pressure":    120  - risk * 0.35  + random.gauss(0, 5),
-        "Resp_Rate":         16   + risk * 0.07  + random.gauss(0, 1),
-        "Oxygen_Level":      99   - risk * 0.08  + random.gauss(0, 0.5),
-        "Infection_Marker":  risk / 100          + random.gauss(0, 0.03),
-        "risk_score":        float(risk),
-        "risk_level":        "High" if risk > 70 else ("Medium" if risk > 30 else "Low"),
-        "risk_color":        "#ef4444" if risk > 70 else ("#f59e0b" if risk > 30 else "#10b981"),
-        "sirs_score":        0,
-        "disclaimer":        "Demo system. Trained on synthetic data. Not validated for clinical use. Not a substitute for clinical judgment.",
-        "explanation":       [],
-        "contributions":     {"Heart Rate": 20, "Blood Pressure": 20, "Temperature": 20, "SpO2": 20, "Resp Rate": 20},
-        "ai_synthesis":      "Initializing clinical AI engine...",
-        "alert_level":       "CRITICAL" if risk > 70 else ("WARNING" if risk > 30 else "STABLE"),
-        "trend":             [round(max(0, min(100, float(risk) + math.sin(i * 0.3) * 3 + random.gauss(0, 1.5))), 1) for i in range(20)],
-        "anomaly":           False,
-        "deteriorating":     False,
-        "last_updated":      datetime.now().isoformat(),
+        **vitals,
+        **ml_res,
+        "trend": [round(max(0, min(100, ml_res["risk_score"] + math.sin(i * 0.3) * 3 + random.gauss(0, 1.5))), 1) for i in range(20)],
+        "anomaly": False,
+        "deteriorating": False,
+        "last_updated": datetime.now().isoformat(),
     }
 
 for pid in PATIENTS:

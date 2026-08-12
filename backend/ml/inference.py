@@ -17,12 +17,12 @@ def safe_float(val, fallback):
         return float(fallback)
 
 def get_risk_level(prob):
-    if prob < 30:
+    if prob < 27.0:
         return {"level": "Low",    "color": "#10b981", "msg": "Stable. Continue standard monitoring."}
-    elif prob < 70:
-        return {"level": "Medium", "color": "#f59e0b", "msg": "Elevated risk. Increase monitoring frequency."}
+    elif prob < 50.0:
+        return {"level": "Medium", "color": "#f59e0b", "msg": "WARNING: Elevated sepsis risk above operating threshold (0.27)."}
     else:
-        return {"level": "High",   "color": "#ef4444", "msg": "CRITICAL: Immediate clinical intervention required."}
+        return {"level": "High",   "color": "#ef4444", "msg": "CRITICAL ALERT: High sepsis risk. Immediate clinical assessment required."}
 
 def run_ml_pipeline(pid, vitals, generate_ai=False):
     """
@@ -113,7 +113,7 @@ def run_ml_pipeline(pid, vitals, generate_ai=False):
         ])
 
         shap_explanation = explain_prediction(model, explainer, feature_dict, feature_cols, top_k=5)
-        alert_level = "CRITICAL" if prob > 70 else ("WARNING" if prob > 30 else "STABLE")
+        alert_level = "CRITICAL" if prob >= 50.0 else ("WARNING" if prob >= 27.0 else "STABLE")
 
         ai_synthesis = ""
         if generate_ai:
