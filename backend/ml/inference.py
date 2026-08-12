@@ -79,10 +79,8 @@ def run_ml_pipeline(pid, vitals, generate_ai=False):
 
         features_vector = [feature_dict[col] for col in feature_cols]
 
-        if scaler is not None and hasattr(scaler, "transform") and len(feature_cols) == getattr(scaler, "n_features_in_", 0):
-            X_in = scaler.transform([features_vector])
-        else:
-            X_in = [features_vector]
+        # XGBoost is a tree-based model trained on raw unscaled features.
+        X_in = [features_vector]
 
         if hasattr(model, "predict_proba"):
             prob = float(model.predict_proba(X_in)[0][1]) * 100
