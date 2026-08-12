@@ -377,10 +377,14 @@ function updateModal(data) {
 
     // Trend update
     if (modalChart && data.trend?.length) {
-        modalChart.data.labels   = data.trend.map((_, i) => i + 1);
-        modalChart.data.datasets[0].data = data.trend;
+        const trend = data.trend;
+        modalChart.data.labels = trend.map((_, i) => {
+            const pastSec = (trend.length - 1 - i) * 2;
+            return pastSec === 0 ? 'NOW' : `-${pastSec}s`;
+        });
+        modalChart.data.datasets[0].data = trend;
         modalChart.data.datasets[0].borderColor = color;
-        modalChart.data.datasets[0].backgroundColor = color + '1a';
+        modalChart.data.datasets[0].pointBorderColor = color;
         modalChart.update('none');
     }
 }
@@ -391,23 +395,88 @@ function setModalVital(id, val, cls) {
 }
 
 function initModalTrend(pid) {
-    const ctx   = document.getElementById('modal-trend').getContext('2d');
-    const trend = patients[pid]?.trend || [];
+    const canvas = document.getElementById('modal-trend');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const trend = (patients[pid]?.trend && patients[pid].trend.length > 0)
+        ? patients[pid].trend
+        : Array(20).fill(patients[pid]?.risk_score || 15);
     const color = patients[pid]?.risk_color || '#38bdf8';
+    
     if (modalChart) modalChart.destroy();
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 140);
+    gradient.addColorStop(0, color + '55');
+    gradient.addColorStop(0.5, color + '22');
+    gradient.addColorStop(1, color + '03');
+
+    const labels = trend.map((_, i) => {
+        const pastSec = (trend.length - 1 - i) * 2;
+        return pastSec === 0 ? 'NOW' : `-${pastSec}s`;
+    });
+
     modalChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: trend.map((_, i) => i + 1),
-            datasets: [{ data: trend, borderColor: color, backgroundColor: color + '1a',
-                borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 }]
+            labels: labels,
+            datasets: [{
+                label: 'Sepsis Risk (%)',
+                data: trend,
+                borderColor: color,
+                borderWidth: 2.5,
+                backgroundColor: gradient,
+                fill: true,
+                tension: 0.35,
+                pointRadius: (context) => (context.dataIndex === context.dataset.data.length - 1 ? 5 : 2),
+                pointHoverRadius: 6,
+                pointBackgroundColor: (context) => (context.dataIndex === context.dataset.data.length - 1 ? '#ffffff' : color),
+                pointBorderColor: color,
+                pointBorderWidth: 1.5
+            }]
         },
-        options: { responsive: true, maintainAspectRatio: false, animation: false,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: { mode: 'index', intersect: false },
             scales: {
-                y: { min: 0, max: 100, grid: { color: 'rgba(56,189,248,.05)' }, ticks: { color: '#64748b', font: { size: 9 } } },
-                x: { display: false }
+                y: {
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        stepSize: 25,
+                        color: '#94a3b8',
+                        font: { size: 9, family: 'monospace' },
+                        callback: (v) => v + '%'
+                    },
+                    grid: { color: 'rgba(255,255,255,0.06)', drawBorder: false }
+                },
+                x: {
+                    ticks: {
+                        color: '#64748b',
+                        font: { size: 9, family: 'monospace' },
+                        maxRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 7
+                    },
+                    grid: { display: false }
+                }
             },
-            plugins: { legend: { display: false } }
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(10,15,25,0.92)',
+                    titleColor: '#38bdf8',
+                    bodyColor: '#ffffff',
+                    borderColor: 'rgba(56,189,248,0.3)',
+                    borderWidth: 1,
+                    padding: 8,
+                    displayColors: false,
+                    callbacks: {
+                        label: (c) => `Risk Score: ${c.parsed.y.toFixed(1)}%`
+                    }
+                }
+            }
         }
     });
 }

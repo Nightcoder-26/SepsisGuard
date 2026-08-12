@@ -4,7 +4,13 @@ SepsisGuard AI - Central Hospital Telemetry Server v3.0 (Phase 10 / Phase 12 Arc
 Lightweight Application Factory & Service Entry Point with Structured Logging.
 """
 
+import os
 import sys
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -72,4 +78,4 @@ if __name__ == '__main__':
     logger.info("  SepsisGuard AI v3.0 - ICU Intelligence Ecosystem")
     logger.info("  http://localhost:5000")
     logger.info("=" * 55)
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)

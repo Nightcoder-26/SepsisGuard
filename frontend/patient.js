@@ -202,29 +202,91 @@ function renderContribs(shap_data) {
 
 // ─── Trend Chart ────────────────────────────────
 function updateTrend(trend, color) {
+    const canvas = document.getElementById('pt-trend');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const colorHex = color || '#38bdf8';
+
+    const labels = trend.map((_, i) => {
+        const pastSec = (trend.length - 1 - i) * 2;
+        return pastSec === 0 ? 'NOW' : `-${pastSec}s`;
+    });
+
     if (!trendChart) {
-        const ctx = document.getElementById('pt-trend').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 150);
+        gradient.addColorStop(0, colorHex + '55');
+        gradient.addColorStop(0.5, colorHex + '22');
+        gradient.addColorStop(1, colorHex + '03');
+
         trendChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: trend.map((_, i) => i + 1),
-                datasets: [{ data: trend, borderColor: color, backgroundColor: color + '1a',
-                    borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 }]
+                labels: labels,
+                datasets: [{
+                    label: 'Sepsis Risk (%)',
+                    data: trend,
+                    borderColor: colorHex,
+                    borderWidth: 2.5,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: (c) => (c.dataIndex === c.dataset.data.length - 1 ? 5 : 2),
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: (c) => (c.dataIndex === c.dataset.data.length - 1 ? '#ffffff' : colorHex),
+                    pointBorderColor: colorHex,
+                    pointBorderWidth: 1.5
+                }]
             },
             options: {
-                responsive: true, maintainAspectRatio: false, animation: false,
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: { mode: 'index', intersect: false },
                 scales: {
-                    y: { min: 0, max: 100, grid: { color: 'rgba(56,189,248,.05)' }, ticks: { color: '#64748b', font: { size: 9 } } },
-                    x: { display: false }
+                    y: {
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            stepSize: 25,
+                            color: '#94a3b8',
+                            font: { size: 9, family: 'monospace' },
+                            callback: (v) => v + '%'
+                        },
+                        grid: { color: 'rgba(255,255,255,0.06)', drawBorder: false }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#64748b',
+                            font: { size: 9, family: 'monospace' },
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 7
+                        },
+                        grid: { display: false }
+                    }
                 },
-                plugins: { legend: { display: false } }
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(10,15,25,0.92)',
+                        titleColor: '#38bdf8',
+                        bodyColor: '#ffffff',
+                        borderColor: 'rgba(56,189,248,0.3)',
+                        borderWidth: 1,
+                        padding: 8,
+                        displayColors: false,
+                        callbacks: {
+                            label: (c) => `Risk Score: ${c.parsed.y.toFixed(1)}%`
+                        }
+                    }
+                }
             }
         });
     } else {
-        trendChart.data.labels   = trend.map((_, i) => i + 1);
+        trendChart.data.labels = labels;
         trendChart.data.datasets[0].data = trend;
-        trendChart.data.datasets[0].borderColor = color;
-        trendChart.data.datasets[0].backgroundColor = color + '1a';
+        trendChart.data.datasets[0].borderColor = colorHex;
+        trendChart.data.datasets[0].pointBorderColor = colorHex;
         trendChart.update('none');
     }
 }

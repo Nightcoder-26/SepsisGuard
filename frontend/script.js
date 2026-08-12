@@ -289,32 +289,76 @@ function animateCounter(el, target) {
 }
 
 function initChart() {
-    const ctx = document.getElementById('trendChart').getContext('2d');
+    const canvas = document.getElementById('trendChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 150);
+    gradient.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+    gradient.addColorStop(0.5, 'rgba(56, 189, 248, 0.12)');
+    gradient.addColorStop(1, 'rgba(56, 189, 248, 0.01)');
+
     trendChart = new Chart(ctx, {
         type: 'line',
-        data: trendData,
+        data: {
+            labels: Array(10).fill('').map((_, i) => i === 9 ? 'NOW' : `-${(9 - i) * 2}s`),
+            datasets: [{
+                label: 'Sepsis Risk (%)',
+                data: Array(10).fill(15),
+                borderColor: '#38bdf8',
+                borderWidth: 2.5,
+                backgroundColor: gradient,
+                fill: true,
+                tension: 0.35,
+                pointRadius: (c) => (c.dataIndex === 9 ? 5 : 2),
+                pointHoverRadius: 6,
+                pointBackgroundColor: (c) => (c.dataIndex === 9 ? '#ffffff' : '#38bdf8'),
+                pointBorderColor: '#38bdf8',
+                pointBorderWidth: 1.5
+            }]
+        },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
             scales: {
                 y: { 
                     beginAtZero: true, 
                     max: 100, 
-                    grid: { color: 'rgba(56, 189, 248, 0.05)' }, 
-                    ticks: { color: '#94a3b8', font: { size: 10 } }
+                    grid: { color: 'rgba(255, 255, 255, 0.06)', drawBorder: false }, 
+                    ticks: { color: '#94a3b8', font: { size: 9, family: 'monospace' }, callback: (v) => v + '%' }
                 },
-                x: { display: false }
+                x: {
+                    ticks: { color: '#64748b', font: { size: 9, family: 'monospace' } },
+                    grid: { display: false }
+                }
             },
-            plugins: { legend: { display: false } }
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(10,15,25,0.92)',
+                    titleColor: '#38bdf8',
+                    bodyColor: '#ffffff',
+                    borderColor: 'rgba(56,189,248,0.3)',
+                    borderWidth: 1,
+                    padding: 8,
+                    displayColors: false,
+                    callbacks: {
+                        label: (c) => `Risk Score: ${c.parsed.y.toFixed(1)}%`
+                    }
+                }
+            }
         }
     });
 }
 
 function updateTrend(newScore, color) {
+    if (!trendChart) return;
+    const colorHex = color || '#38bdf8';
     trendChart.data.datasets[0].data.shift();
     trendChart.data.datasets[0].data.push(newScore);
-    trendChart.data.datasets[0].borderColor = color;
-    trendChart.data.datasets[0].backgroundColor = color + "1a";
+    trendChart.data.datasets[0].borderColor = colorHex;
+    trendChart.data.datasets[0].pointBorderColor = colorHex;
     trendChart.update();
 }
 

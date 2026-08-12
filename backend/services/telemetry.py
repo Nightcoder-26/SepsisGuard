@@ -52,7 +52,7 @@ def _init_state(pid):
         "contributions":     {"Heart Rate": 20, "Blood Pressure": 20, "Temperature": 20, "SpO2": 20, "Resp Rate": 20},
         "ai_synthesis":      "Initializing clinical AI engine...",
         "alert_level":       "CRITICAL" if risk > 70 else ("WARNING" if risk > 30 else "STABLE"),
-        "trend":             [],
+        "trend":             [round(max(0, min(100, float(risk) + math.sin(i * 0.3) * 3 + random.gauss(0, 1.5))), 1) for i in range(20)],
         "anomaly":           False,
         "deteriorating":     False,
         "last_updated":      datetime.now().isoformat(),
