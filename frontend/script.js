@@ -56,7 +56,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                     Resp_Rate: parseFloat(document.getElementById("rr").value || 0),
                     Oxygen_Level: parseFloat(document.getElementById("spo2").value || 0),
                     Age: parseInt(document.getElementById("age").value || 0),
-                    Infection_Marker: parseFloat(document.getElementById("marker").value || 0)
+                    Infection_Marker: parseFloat(document.getElementById("marker").value || 0),
+                    generate_synthesis: false
                 };
                 getPrediction(data);
             }, 300); // 300ms real-time latency
@@ -74,7 +75,8 @@ vitalsForm.addEventListener("submit", async (e) => {
         Resp_Rate: parseFloat(document.getElementById("rr").value),
         Oxygen_Level: parseFloat(document.getElementById("spo2").value),
         Age: parseInt(document.getElementById("age").value),
-        Infection_Marker: parseFloat(document.getElementById("marker").value)
+        Infection_Marker: parseFloat(document.getElementById("marker").value),
+        generate_synthesis: true
     };
     
     await getPrediction(data);
@@ -171,27 +173,13 @@ function updateUI(res) {
     if (hr > 90) sirsCount++;
     if (rr > 20) sirsCount++;
     if (marker > 0.5) sirsCount++; 
-    document.getElementById("sirs-score").textContent = `${sirsCount}/4`;
-    
-    // Survival Rate Estimate
-    let survival = 99.8 - (score * 0.45); 
-    if (survival < 15) survival = 15; 
-    const survivalEl = document.getElementById("survival-rate");
-    if (survivalEl) survivalEl.textContent = survival.toFixed(1) + "%";
-
-    let confidence = 50 + (Math.abs(score - 50) / 50) * 48.4; 
-    if (confidence > 98.4) confidence = 98.4;
-    document.getElementById("confidence-score").textContent = confidence.toFixed(1) + "%";
-
-    let onset = "> 12 hrs";
-    if (score > 80) onset = "1 - 3 hrs";
-    else if (score > 60) onset = "4 - 6 hrs";
-    else if (score > 30) onset = "8 - 12 hrs";
-    document.getElementById("onset-time").textContent = onset;
+    const sirsEl = document.getElementById("sirs-score");
+    if (sirsEl) sirsEl.textContent = `${sirsCount}/4`;
 
     // Update Ranges UI
     const bp = parseFloat(document.getElementById("bp").value);
     const spo2 = parseFloat(document.getElementById("spo2").value);
+    const age = parseInt(document.getElementById("age").value);
     
     if (document.getElementById("range-hr")) {
         document.getElementById("range-hr").textContent = hr;
@@ -205,6 +193,22 @@ function updateUI(res) {
         document.getElementById("range-spo2").textContent = spo2;
         document.getElementById("fill-spo2").style.width = `${spo2}%`;
         document.getElementById("fill-spo2").className = `range-fill ${spo2 < 94 ? 'fill-danger' : 'fill-normal'}`;
+        
+        document.getElementById("range-temp").textContent = temp;
+        document.getElementById("fill-temp").style.width = `${Math.max(0, Math.min(((temp - 30) / 15) * 100, 100))}%`;
+        document.getElementById("fill-temp").className = `range-fill ${temp < 36 || temp > 38 ? 'fill-danger' : 'fill-normal'}`;
+        
+        document.getElementById("range-rr").textContent = rr;
+        document.getElementById("fill-rr").style.width = `${Math.min((rr / 40) * 100, 100)}%`;
+        document.getElementById("fill-rr").className = `range-fill ${rr > 20 || rr < 12 ? 'fill-danger' : 'fill-normal'}`;
+
+        document.getElementById("range-age").textContent = age;
+        document.getElementById("fill-age").style.width = `${Math.min((age / 100) * 100, 100)}%`;
+        document.getElementById("fill-age").className = `range-fill fill-normal`;
+
+        document.getElementById("range-marker").textContent = marker.toFixed(2);
+        document.getElementById("fill-marker").style.width = `${Math.min(marker * 100, 100)}%`;
+        document.getElementById("fill-marker").className = `range-fill ${marker > 0.5 ? 'fill-danger' : 'fill-normal'}`;
     }
 
     // Update Risk Contribution Matrix (Pie Chart)

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SepsisGuard AI — ICU Intelligence Ecosystem</title>
+<meta name="description" content="Real-time AI-powered ICU monitoring command center"/>
+<link rel="stylesheet" href="dashboard.css"/>
+</head>
+<body>
+<div class="global-medical-disclaimer">
+    <span>⚠️ Demo system. Trained on synthetic data. Not validated for clinical use. Not a substitute for clinical judgment.</span>
+</div>
+<canvas id="particle-canvas"></canvas>
+<div id="app">
+
+<!-- ══ COMMAND BAR ══ -->
+<header class="command-bar">
+    <div class="brand">
+        <div class="brand-logo">⚕</div>
+        <div>
+            <div class="brand-name">SepsisGuard AI</div>
+            <div class="brand-sub">ICU Intelligence Ecosystem v3.0</div>
+        </div>
+    </div>
+    <div class="cb-divider"></div>
+    <div class="net-flow"><div class="flow-dot"></div>TELEMETRY STREAM — 6 DEVICES ACTIVE</div>
+    <div class="cb-divider"></div>
+    <div class="cb-stats">
+        <div class="stat-chip crit" id="sc-crit"><div class="stat-val" id="sv-crit">0</div><div class="stat-lbl">Critical</div></div>
+        <div class="cb-divider"></div>
+        <div class="stat-chip warn" id="sc-warn"><div class="stat-val" id="sv-warn">0</div><div class="stat-lbl">Warning</div></div>
+        <div class="cb-divider"></div>
+        <div class="stat-chip ok"  id="sc-ok"  ><div class="stat-val" id="sv-ok">0</div>  <div class="stat-lbl">Stable</div></div>
+    </div>
+    <div class="sys-status">
+        <div class="sdot" id="conn-dot"></div>
+        <span id="conn-lbl" style="font-size:.63rem">Connecting…</span>
+    </div>
+    <div class="cb-clock" id="clock">00:00:00</div>
+</header>
+
+<!-- ══ DATA FLOW STRIP ══ -->
+<div class="flow-strip">
+    <div class="fn"><div class="fp"></div>ICU DEVICES [6]</div>
+    <div class="fa"></div>
+    <div class="fn"><div class="fp"></div>TELEMETRY HUB</div>
+    <div class="fa"></div>
+    <div class="fn"><div class="fp"></div>AI ENGINE</div>
+    <div class="fa"></div>
+    <div class="fn"><div class="fp"></div>COMMAND CENTER</div>
+    <div class="pkt-counter" id="pkt-ctr">PKT: 0</div>
+</div>
+
+<!-- ══ MAIN LAYOUT ══ -->
+<div class="main-layout">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="left-sidebar">
+
+        <!-- AI Triage -->
+        <div class="panel triage-panel">
+            <div class="panel-title"><span></span>AI TRIAGE QUEUE</div>
+            <div class="triage-list" id="triage-list"></div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="panel timeline-panel">
+            <div class="panel-title"><span></span>CLINICAL TIMELINE</div>
+            <div class="timeline-events" id="timeline-events"></div>
+        </div>
+
+    </aside>
+
+    <!-- CENTER: PATIENT GRID -->
+    <main class="center-panel">
+        <div class="patient-grid" id="patient-grid"></div>
+    </main>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside class="right-sidebar">
+
+        <!-- ICU Floor Map -->
+        <div class="floor-map-panel">
+            <div class="panel-title"><span></span>ICU FLOOR MAP</div>
+            <div class="floor-map-canvas-wrap"><canvas id="floor-canvas"></canvas></div>
+        </div>
+
+        <!-- Explainability -->
+        <div class="explain-panel" id="explain-panel">
+            <div class="panel-title"><span></span>RISK CONTRIBUTORS</div>
+            <div style="font-size:.58rem;color:var(--text-2);font-family:var(--mono);margin-bottom:2px" id="explain-pid">Select a patient</div>
+            <div class="explain-bars" id="explain-bars"></div>
+        </div>
+
+        <!-- AI Copilot -->
+        <div class="copilot-panel">
+            <div class="panel-title"><span></span>AI CLINICAL COPILOT</div>
+            <div class="ai-disclaimer-badge">AI-generated — not a clinical order. Independent clinical judgment required.</div>
+            <div class="copilot-msgs" id="copilot-msgs">
+                <div class="cop-msg system">SepsisGuard AI ready. Ask about any patient.</div>
+            </div>
+            <div class="copilot-input-row">
+                <input class="cop-input" id="cop-input" placeholder="Ask about patients…" autocomplete="off"/>
+                <button class="cop-send" id="cop-send" onclick="sendCopilot()">ASK</button>
+            </div>
+        </div>
+
+    </aside>
+</div><!-- end main-layout -->
+</div><!-- end app -->
+
+<!-- ALERT OVERLAY -->
+<div id="alert-overlay"></div>
+
+<!-- PATIENT DETAIL MODAL -->
+<div id="detail-modal">
+<div class="modal-panel">
+    <button class="modal-close" onclick="closeModal()">✕ Close</button>
+    <div>
+        <div class="modal-title" id="m-name">—</div>
+        <div class="modal-sub"  id="m-sub">—</div>
+    </div>
+    <div>
+        <div class="msec">Live ECG Trace</div>
+        <div class="modal-ecg-wrap"><canvas id="modal-ecg"></canvas></div>
+    </div>
+    <div>
+        <div class="msec">Vital Signs</div>
+        <div class="modal-vitals">
+            <div class="mvc"><div class="mvc-val" id="m-hr">—</div><div class="mvc-range">60–100</div><div class="mvc-name">Heart Rate bpm</div></div>
+            <div class="mvc"><div class="mvc-val" id="m-bp">—</div><div class="mvc-range">90–120</div><div class="mvc-name">Systolic BP</div></div>
+            <div class="mvc"><div class="mvc-val" id="m-spo2">—</div><div class="mvc-range">95–100%</div><div class="mvc-name">SpO₂ %</div></div>
+            <div class="mvc"><div class="mvc-val" id="m-temp">—</div><div class="mvc-range">36.5–37.5</div><div class="mvc-name">Temp °C</div></div>
+            <div class="mvc"><div class="mvc-val" id="m-rr">—</div><div class="mvc-range">12–20</div><div class="mvc-name">Resp Rate</div></div>
+            <div class="mvc"><div class="mvc-val" id="m-age">—</div><div class="mvc-range">Patient age</div><div class="mvc-name">Age yrs</div></div>
+            <div class="mvc"><div class="mvc-val" id="m-inf">—</div><div class="mvc-range">&lt; 0.5</div><div class="mvc-name">Infection Mkr</div></div>
+            <div class="mvc" style="border-color:rgba(56,189,248,.25);background:rgba(56,189,248,.05)">
+                <div class="mvc-val" id="m-risk" style="font-size:1.5rem">—</div>
+                <div class="mvc-range" id="m-risk-lbl">Sepsis Risk</div>
+                <div class="mvc-name" id="m-risk-level">—</div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="msec">Risk Progression</div>
+        <canvas class="modal-trend-canvas" id="modal-trend"></canvas>
+    </div>
+    <div>
+        <div class="msec">Clinical Triggers</div>
+        <div class="triggers-wrap" id="m-triggers"></div>
+    </div>
+    <div>
+        <div class="msec">AI Clinical Synthesis</div>
+        <div class="ai-disclaimer-badge">AI-generated — not a clinical order. Independent clinical judgment required.</div>
+        <div class="modal-synthesis" id="m-synthesis">Awaiting AI analysis…</div>
+        <button class="ai-btn" id="m-ai-btn" style="margin-top:8px" onclick="requestAI()">⚡ Generate Full AI Synthesis</button>
+        <button class="ai-btn" style="margin-top:6px;background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.3);color:#a5b4fc" onclick="openPatientPage()">🔬 Open Full Patient Detail Screen →</button>
+    </div>
+    <div class="modal-metrics">
+        <div class="mvc" style="grid-column: span 4;"><div class="mvc-val" style="font-size:1rem" id="m-sirs">—</div><div class="mvc-name">SIRS Score (Rule-based)</div></div>
+    </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.2/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

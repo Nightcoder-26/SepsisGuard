@@ -56,5 +56,16 @@ The backend will run on `http://localhost:5000`.
 - **Accuracy**: ~98-100% (on SIRS-based synthetic data)
 - **Features**: Heart Rate, Temperature, BP, Respiratory Rate, SpO2, Age, Infection Markers (WBC/CRP).
 
+## ⚠️ Limitations & Intended Use
+
+> **IMPORTANT CLINICAL NOTICE**
+> 
+> - **Demo / Research Prototype**: SepsisGuard AI is currently a proof-of-concept research prototype built for demonstration purposes.
+> - **Synthetic Dataset**: The underlying machine learning model was trained on a synthetic clinical dataset generated using rule-based SIRS guidelines.
+> - **Not Clinically Validated**: The system has **NOT** been evaluated, certified, or validated in real-world clinical trials or clinical environments.
+> - **Not a Medical Diagnosis**: Model outputs, risk scores, and AI syntheses represent decision-support information only and do **NOT** constitute medical diagnoses, clinical treatment orders, or therapeutic recommendations.
+> - **Clinical Judgment Required**: SepsisGuard AI is not a substitute for professional clinical judgment, bedside evaluation, or institutional ICU care protocols.
+> - **Prohibited for Patient Care**: This system must **NOT** be used to direct real patient treatment, prescribe medications, or replace direct care by licensed healthcare professionals.
+
 ## 🏆 Development Team
 Build with 💡 for the **Sushack 4.0 Hackathon**.

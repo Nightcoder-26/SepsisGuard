@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+OBSOLETE / DEMO ONLY - SYNTHETIC DATA GENERATOR
+================================================
+NOTICE: This synthetic data generator is OBSOLETE and NO LONGER USED for model training.
+As of Phase 2, model training relies exclusively on authentic clinical data from the
+PhysioNet 2019 Sepsis Challenge dataset processed via `data/preprocess.py`.
+
+This script is retained solely for offline demo/legacy test compatibility.
+"""
 import pandas as pd
 import numpy as np
 import os

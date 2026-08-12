@@ -1,0 +1,379 @@
+/**
+ * SepsisGuard AI v3.0 — Patient Detail Screen
+ * Real-time single-patient monitoring with animated risk orb
+ */
+
+const SERVER = 'http://localhost:5000';
+const pid    = new URLSearchParams(window.location.search).get('pid') || 'P001';
+
+let trendChart = null;
+let ecgRenderer = null;
+let orbAnim    = null;
+let currentRisk = 0;
+let currentColor = '#10b981';
+let currentLevel = 'STABLE';
+
+// ─── Socket.IO ──────────────────────────────────
+const socket = io(SERVER, { transports: ['websocket', 'polling'] });
+
+socket.on('connect', () => setConn(true));
+socket.on('disconnect', () => setConn(false));
+
+socket.on('snapshot', (data) => {
+    if (data[pid]) renderAll(data[pid]);
+});
+
+socket.on('telemetry', (pkt) => {
+    if (pkt.pid === pid) renderAll(pkt);
+});
+
+socket.on('ai_synthesis_result', (data) => {
+    if (data.pid === pid && data.ai_synthesis) {
+        typewriter(document.getElementById('pt-synthesis'), data.ai_synthesis);
+        const btn = document.getElementById('pt-ai-btn');
+        btn.textContent = '⚡ Generate AI Synthesis';
+        btn.disabled = false;
+    }
+});
+
+socket.on('timeline_event', (data) => {
+    if (data.pid === pid) addEvent(data.event);
+});
+
+socket.on('timeline_snapshot', (data) => {
+    if (data[pid]) data[pid].forEach(e => addEvent(e));
+});
+
+// ─── Render everything ──────────────────────────
+function renderAll(data) {
+    const v     = data.vitals || data;
+    const risk  = data.risk_score ?? 0;
+    const color = data.risk_color  || '#10b981';
+    const level = data.alert_level || 'STABLE';
+
+    currentRisk  = risk;
+    currentColor = color;
+    currentLevel = level;
+
+    // Header
+    setText('pt-name',  data.name  || pid);
+    setText('pt-meta',  (data.bed || '—') + ' · Age ' + (data.age || '—') + ' · ' + (data.room || '—'));
+    const badge = document.getElementById('pt-badge');
+    if (badge) { badge.className = 'alert-badge ' + level; badge.textContent = level; }
+
+    // Vitals
+    setVCard('v-hr',   'vb-hr',   v.Heart_Rate,       60,  100,  false, 'bpm');
+    setVCard('v-bp',   'vb-bp',   v.Blood_Pressure,   90,  120,  false, 'mmHg');
+    setVCard('v-spo2', 'vb-spo2', v.Oxygen_Level,     95,  100,  false, '%');
+    setVCard('v-temp', 'vb-temp', v.Temperature,      36.5,37.5, false, '°C');
+    setVCard('v-rr',   'vb-rr',   v.Resp_Rate,        12,  20,   false, 'bpm');
+    setVCard('v-inf',  'vb-inf',  v.Infection_Marker, 0,   0.5,  true,  '');
+
+    // Orb
+    setText('orb-pct',   risk.toFixed(0) + '%');
+    setText('orb-level', data.risk_level || '—');
+    const lvlEl = document.getElementById('orb-level');
+    if (lvlEl) lvlEl.style.color = color;
+
+    // Metrics
+    setText('m-sirs',  (data.sirs_score ?? '—') + '/4');
+
+    // Triggers
+    const trig = document.getElementById('pt-triggers');
+    if (trig) {
+        const exp = data.explanation || [];
+        trig.innerHTML = exp.length
+            ? exp.map(e => `<span class="trigger-tag">${e}</span>`).join('')
+            : '<span class="trigger-tag ok">All vitals within normal range</span>';
+    }
+
+    // AI Synthesis
+    if (data.ai_synthesis) setText('pt-synthesis', data.ai_synthesis);
+
+    // Contributions
+    renderContribs(data.contributions || {});
+
+    // Trend
+    updateTrend(data.trend || [], color);
+
+    // ECG
+    if (ecgRenderer) {
+        if (v.Heart_Rate) ecgRenderer.setHR(v.Heart_Rate);
+        ecgRenderer.setLevel(level);
+    }
+
+    // Alert glow on body
+    document.body.style.boxShadow = level === 'CRITICAL'
+        ? 'inset 0 0 80px rgba(239,68,68,0.08)'
+        : 'none';
+}
+
+// ─── Vital Card ─────────────────────────────────
+function setVCard(valId, barId, val, lo, hi, invert, unit) {
+    const el  = document.getElementById(valId);
+    const bar = document.getElementById(barId);
+    if (!el || val == null) return;
+
+    const fmt = unit === '°C' ? val.toFixed(1) : val > 1 ? Math.round(val) : val.toFixed(2);
+    el.textContent = fmt + (unit ? ' ' + unit : '');
+
+    let cls = '';
+    if (invert) { if (val >= hi) cls = 'danger'; }
+    else if (val < lo || val > hi) { cls = 'danger'; }
+
+    el.className = 'vcard-val ' + cls;
+    if (bar) {
+        const pct = invert
+            ? Math.min(val / hi * 100, 100)
+            : Math.min(((val - lo) / (hi - lo + 0.001)) * 100, 100);
+        bar.style.width   = Math.max(2, pct) + '%';
+        bar.style.background = cls === 'danger' ? '#ef4444' : '#10b981';
+    }
+}
+
+// ─── Contributions ──────────────────────────────
+function renderContribs(contribs) {
+    const el = document.getElementById('contrib-bars');
+    if (!el) return;
+    const total  = Object.values(contribs).reduce((s, v) => s + v, 0) || 1;
+    const sorted = Object.entries(contribs).sort((a, b) => b[1] - a[1]);
+    el.innerHTML  = '';
+    sorted.forEach(([lbl, val]) => {
+        const pct = Math.min(Math.round((val / total) * 100), 100);
+        const row = document.createElement('div');
+        row.className = 'eb';
+        row.innerHTML = `<div class="eb-lbl">${lbl}</div><div class="eb-track"><div class="eb-fill" style="width:0%" data-pct="${pct}"></div></div><div class="eb-pct">${pct}%</div>`;
+        el.appendChild(row);
+        requestAnimationFrame(() => { row.querySelector('.eb-fill').style.width = pct + '%'; });
+    });
+}
+
+// ─── Trend Chart ────────────────────────────────
+function updateTrend(trend, color) {
+    if (!trendChart) {
+        const ctx = document.getElementById('pt-trend').getContext('2d');
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trend.map((_, i) => i + 1),
+                datasets: [{ data: trend, borderColor: color, backgroundColor: color + '1a',
+                    borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                scales: {
+                    y: { min: 0, max: 100, grid: { color: 'rgba(56,189,248,.05)' }, ticks: { color: '#64748b', font: { size: 9 } } },
+                    x: { display: false }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    } else {
+        trendChart.data.labels   = trend.map((_, i) => i + 1);
+        trendChart.data.datasets[0].data = trend;
+        trendChart.data.datasets[0].borderColor = color;
+        trendChart.data.datasets[0].backgroundColor = color + '1a';
+        trendChart.update('none');
+    }
+}
+
+// ─── Timeline ───────────────────────────────────
+function addEvent(evt) {
+    const tl  = document.getElementById('pt-timeline');
+    if (!tl) return;
+    const div = document.createElement('div');
+    div.className = 'tl-event ' + (evt.type || 'TRIGGER');
+    div.innerHTML = `<div class="tl-time">${evt.time}</div><div class="tl-msg">${evt.msg}</div>`;
+    tl.prepend(div);
+    while (tl.children.length > 25) tl.lastChild.remove();
+}
+
+// ─── AI Request ─────────────────────────────────
+function requestAI() {
+    const btn = document.getElementById('pt-ai-btn');
+    btn.textContent = '⚡ Generating…'; btn.disabled = true;
+    setText('pt-synthesis', 'AI clinical synthesis generating…');
+    socket.emit('request_ai_synthesis', { pid });
+}
+
+// ─── Risk Orb Canvas ────────────────────────────
+function startOrb() {
+    const canvas = document.getElementById('orb-canvas');
+    const ctx    = canvas.getContext('2d');
+    const W = 200, H = 200, cx = 100, cy = 100;
+    let angle = 0;
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        const risk  = currentRisk;
+        const color = currentColor;
+        const level = currentLevel;
+
+        // Outer ring (full circle background)
+        ctx.beginPath();
+        ctx.arc(cx, cy, 85, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(56,189,248,0.07)';
+        ctx.lineWidth   = 8;
+        ctx.stroke();
+
+        // Risk arc
+        const startA = -Math.PI / 2;
+        const endA   = startA + (risk / 100) * Math.PI * 2;
+        ctx.shadowColor = color; ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 85, startA, endA);
+        ctx.strokeStyle = color;
+        ctx.lineWidth   = 8;
+        ctx.lineCap     = 'round';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Rotating outer ring (scanner effect)
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(angle);
+        const grad = ctx.createLinearGradient(0, -95, 0, 95);
+        grad.addColorStop(0,   color + '00');
+        grad.addColorStop(0.5, color + '40');
+        grad.addColorStop(1,   color + '00');
+        ctx.beginPath();
+        ctx.arc(0, 0, 95, -0.3, 0.3);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth   = 3;
+        ctx.stroke();
+        ctx.restore();
+
+        // Inner glow circle
+        const pulse = 0.7 + Math.sin(angle * 3) * 0.08;
+        const radialGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 65 * pulse);
+        radialGrad.addColorStop(0,   color + '20');
+        radialGrad.addColorStop(0.6, color + '08');
+        radialGrad.addColorStop(1,   'transparent');
+        ctx.beginPath();
+        ctx.arc(cx, cy, 65 * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = radialGrad;
+        ctx.fill();
+
+        // Middle ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, 65, 0, Math.PI * 2);
+        ctx.strokeStyle = color + '20';
+        ctx.lineWidth   = 1;
+        ctx.stroke();
+
+        // Tick marks for critical
+        if (level === 'CRITICAL') {
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2 + angle;
+                const r1 = 74, r2 = 80;
+                ctx.beginPath();
+                ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+                ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+                ctx.strokeStyle = color + 'aa';
+                ctx.lineWidth   = 1.5;
+                ctx.stroke();
+            }
+        }
+
+        angle += level === 'CRITICAL' ? 0.035 : 0.018;
+        orbAnim = requestAnimationFrame(draw);
+    }
+    draw();
+}
+
+// ─── ECG Renderer (same as dashboard.js) ────────
+class ECGRenderer {
+    constructor(canvas, opts = {}) {
+        this.canvas = canvas;
+        this.ctx    = canvas.getContext('2d');
+        this.speed  = opts.speed || 3;
+        this.lw     = opts.lineWidth || 2;
+        this.hr     = 75; this.color = '#10b981';
+        this.phase  = 0; this.buf = []; this.on = false; this._raf = null;
+        this._resize();
+        new ResizeObserver(() => this._resize()).observe(canvas.parentElement);
+    }
+    _resize() {
+        const p = this.canvas.parentElement;
+        if (!p) return;
+        this.canvas.width  = p.clientWidth;
+        this.canvas.height = p.clientHeight;
+        this.W = this.canvas.width; this.H = this.canvas.height;
+        this.buf = new Array(this.W).fill(this.H / 2);
+    }
+    setHR(hr)  { this.hr = Math.max(30, Math.min(200, hr)); }
+    setLevel(l){ this.color = l === 'CRITICAL' ? '#ef4444' : l === 'WARNING' ? '#f59e0b' : '#10b981'; }
+    start()    { this.on = true; this._render(); }
+    stop()     { this.on = false; if (this._raf) cancelAnimationFrame(this._raf); }
+    _sample(phase) {
+        const t = ((phase % (Math.PI * 2)) / (Math.PI * 2));
+        if (t < 0.13) return 0.12 * Math.sin((t / 0.13) * Math.PI);
+        if (t < 0.21) return 0;
+        if (t < 0.23) return -0.12 * (t - 0.21) / 0.02;
+        if (t < 0.26) return  1.0  * (t - 0.23) / 0.03;
+        if (t < 0.29) return  1.0  * (1 - (t - 0.26) / 0.03);
+        if (t < 0.32) return -0.14 * (1 - (t - 0.29) / 0.03);
+        if (t < 0.44) return 0;
+        if (t < 0.63) return 0.24 * Math.sin(((t - 0.44) / 0.19) * Math.PI);
+        return 0;
+    }
+    _render() {
+        if (!this.on) return;
+        const { ctx, W, H, speed } = this;
+        if (!W || !H) { this._raf = requestAnimationFrame(() => this._render()); return; }
+        const midY = H * 0.5, amp = H * 0.38;
+        const inc  = (this.hr / 60) * (Math.PI * 2) / 60 * speed;
+        for (let s = 0; s < speed; s++) {
+            this.phase += inc / speed;
+            this.buf.push(midY - this._sample(this.phase) * amp + (Math.random() - 0.5) * 0.5);
+        }
+        if (this.buf.length > W + speed) this.buf.splice(0, this.buf.length - W);
+        ctx.clearRect(0, 0, W, H);
+        ctx.strokeStyle = 'rgba(56,189,248,0.04)'; ctx.lineWidth = 0.5;
+        for (let gy = 0.25; gy < 1; gy += 0.25) { ctx.beginPath(); ctx.moveTo(0, H * gy); ctx.lineTo(W, H * gy); ctx.stroke(); }
+        ctx.save();
+        ctx.shadowColor = this.color; ctx.shadowBlur = 10;
+        ctx.strokeStyle = this.color; ctx.lineWidth = this.lw; ctx.lineJoin = 'round';
+        ctx.beginPath();
+        const st = Math.max(0, this.buf.length - W);
+        for (let x = 0; x < Math.min(this.buf.length, W); x++) {
+            const y = this.buf[st + x];
+            x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke(); ctx.restore();
+        this._raf = requestAnimationFrame(() => this._render());
+    }
+}
+
+// ─── Utilities ──────────────────────────────────
+function setText(id, v) { const e = document.getElementById(id); if (e) e.textContent = v; }
+function setConn(on) {
+    const dot = document.getElementById('conn-dot'), lbl = document.getElementById('conn-lbl');
+    if (dot) dot.className = 'sdot' + (on ? '' : ' off');
+    if (lbl) { lbl.textContent = on ? 'Live' : 'Disconnected'; lbl.style.color = on ? '#10b981' : '#ef4444'; }
+}
+function typewriter(el, text) {
+    if (!el) return; el.textContent = ''; let i = 0;
+    const t = setInterval(() => { if (i < text.length) el.textContent += text[i++]; else clearInterval(t); }, 14);
+}
+setInterval(() => { setText('clock', new Date().toLocaleTimeString('en-GB', { hour12: false })); }, 1000);
+
+// ─── Init ────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+    // Update page title
+    document.title = 'SepsisGuard — Patient ' + pid;
+
+    // ECG
+    const ecgCanvas = document.getElementById('pt-ecg');
+    ecgRenderer = new ECGRenderer(ecgCanvas, { speed: 3, lineWidth: 2 });
+    ecgRenderer.start();
+
+    // Risk Orb
+    startOrb();
+});
+
+// Update dashboard.js card link
+// Make patient cards clickable to this page
+if (window.parent && window.parent !== window) {
+    // If embedded, communicate via postMessage
+}

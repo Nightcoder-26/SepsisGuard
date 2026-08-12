@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SepsisGuard — Patient Detail</title>
+<link rel="stylesheet" href="dashboard.css"/>
+<style>
+/* Patient page overrides */
+body{overflow-y:auto}
+#app{height:auto;min-height:100vh;overflow:visible}
+
+.pt-header{
+    display:flex;align-items:center;gap:14px;padding:10px 20px;
+    background:rgba(6,13,24,.97);border-bottom:1px solid var(--border);
+    flex-shrink:0;position:sticky;top:0;z-index:100}
+.pt-back{
+    display:flex;align-items:center;gap:6px;font-size:.68rem;font-family:var(--mono);
+    color:var(--accent);background:var(--accent-dim);border:1px solid var(--border-glow);
+    border-radius:5px;padding:5px 12px;cursor:pointer;text-decoration:none;transition:all .2s}
+.pt-back:hover{background:rgba(56,189,248,.25);box-shadow:0 0 14px rgba(56,189,248,.25)}
+.pt-title{font-size:1rem;font-weight:700;color:#fff}
+.pt-meta{font-size:.65rem;color:var(--text-2);font-family:var(--mono)}
+.pt-badge{margin-left:auto}
+
+.pt-body{display:grid;grid-template-columns:280px 1fr 280px;gap:12px;padding:12px;min-height:calc(100vh - 60px)}
+
+/* LEFT: Vitals */
+.pt-vitals-panel{display:flex;flex-direction:column;gap:8px}
+.vcard{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:12px;
+    display:flex;align-items:center;gap:12px}
+.vcard-icon{font-size:1.4rem;width:36px;text-align:center;flex-shrink:0}
+.vcard-body{flex:1}
+.vcard-val{font-family:var(--mono);font-size:1.4rem;font-weight:700;color:#fff;line-height:1}
+.vcard-val.danger {color:var(--danger)}
+.vcard-val.warning{color:var(--warning)}
+.vcard-val.ok     {color:var(--success)}
+.vcard-name{font-size:.6rem;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+.vcard-range{font-size:.56rem;color:var(--text-3);font-family:var(--mono)}
+.vcard-bar-track{height:2px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:5px}
+.vcard-bar{height:100%;border-radius:2px;transition:width .9s ease}
+
+/* CENTER: Risk Orb + ECG */
+.pt-center{display:flex;flex-direction:column;gap:10px}
+
+.risk-orb-wrap{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);
+    padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.orb-container{position:relative;width:200px;height:200px}
+.orb-canvas{position:absolute;inset:0;width:200px;height:200px}
+.orb-center{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    pointer-events:none}
+.orb-risk-pct{font-family:var(--mono);font-size:2.2rem;font-weight:900;color:#fff;line-height:1}
+.orb-risk-lbl{font-size:.6rem;color:var(--text-2);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+.orb-risk-level{font-size:.7rem;font-weight:700;font-family:var(--mono);margin-top:2px}
+
+.orb-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
+.om{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px;text-align:center}
+.om-val{font-family:var(--mono);font-size:.95rem;font-weight:700;color:var(--accent)}
+.om-lbl{font-size:.52rem;color:var(--text-2);text-transform:uppercase;margin-top:2px}
+
+.pt-ecg-wrap{
+    background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);
+    padding:12px;flex-shrink:0}
+.pt-ecg-canvas{width:100%;height:80px;display:block;background:rgba(0,0,0,.3);border-radius:var(--r-sm)}
+
+.triggers-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+
+/* RIGHT: AI + Explainability + Timeline */
+.pt-right{display:flex;flex-direction:column;gap:8px}
+.pt-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+.pt-panel-title{font-size:.6rem;font-family:var(--mono);color:var(--text-2);text-transform:uppercase;
+    letter-spacing:.1em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.pt-panel-title span{width:4px;height:4px;border-radius:50%;background:var(--accent);display:inline-block}
+.ai-synth-text{font-size:.72rem;color:var(--text-1);line-height:1.65;font-style:italic;
+    border-left:2px solid var(--accent);padding-left:9px}
+.pt-ai-btn{
+    margin-top:8px;width:100%;background:var(--accent-dim);border:1px solid var(--border-glow);
+    border-radius:var(--r-sm);color:var(--accent);cursor:pointer;padding:7px;
+    font-size:.63rem;font-family:var(--mono);font-weight:600;letter-spacing:.05em;transition:all .25s}
+.pt-ai-btn:hover{box-shadow:0 0 18px rgba(56,189,248,.25)}
+
+.pt-timeline{flex:1;overflow-y:auto;max-height:200px;display:flex;flex-direction:column;gap:3px}
+</style>
+</head>
+<body>
+<div class="global-medical-disclaimer">
+    <span>⚠️ Demo system. Trained on synthetic data. Not validated for clinical use. Not a substitute for clinical judgment.</span>
+</div>
+<div id="app" style="display:flex;flex-direction:column">
+
+<div class="pt-header">
+    <a class="pt-back" href="/">&#8592; ICU Command Center</a>
+    <div>
+        <div class="pt-title" id="pt-name">Loading patient…</div>
+        <div class="pt-meta" id="pt-meta">—</div>
+    </div>
+    <div class="pt-badge">
+        <div class="alert-badge STABLE" id="pt-badge">STABLE</div>
+    </div>
+    <div style="margin-left:12px;display:flex;align-items:center;gap:5px">
+        <div class="sdot" id="conn-dot"></div>
+        <span id="conn-lbl" style="font-size:.63rem;color:var(--text-2)">Connecting…</span>
+    </div>
+    <div class="cb-clock" id="clock">00:00:00</div>
+</div>
+
+<div class="pt-body">
+
+    <!-- LEFT: VITALS -->
+    <div class="pt-vitals-panel">
+        <div class="vcard">
+            <div class="vcard-icon">❤</div>
+            <div class="vcard-body">
+                <div class="vcard-val" id="v-hr">—</div>
+                <div class="vcard-name">Heart Rate</div>
+                <div class="vcard-range">Ideal: 60–100 bpm</div>
+                <div class="vcard-bar-track"><div class="vcard-bar" id="vb-hr" style="width:50%;background:#10b981"></div></div>
+            </div>
+        </div>
+        <div class="vcard">
+            <div class="vcard-icon">🩸</div>
+            <div class="vcard-body">
+                <div class="vcard-val" id="v-bp">—</div>
+                <div class="vcard-name">Blood Pressure (Sys)</div>
+                <div class="vcard-range">Ideal: 90–120 mmHg</div>
+                <div class="vcard-bar-track"><div class="vcard-bar" id="vb-bp" style="width:50%;background:#10b981"></div></div>
+            </div>
+        </div>
+        <div class="vcard">
+            <div class="vcard-icon">💨</div>
+            <div class="vcard-body">
+                <div class="vcard-val" id="v-spo2">—</div>
+                <div class="vcard-name">SpO₂</div>
+                <div class="vcard-range">Ideal: 95–100%</div>
+                <div class="vcard-bar-track"><div class="vcard-bar" id="vb-spo2" style="width:95%;background:#10b981"></div></div>
+            </div>
+        </div>
+        <div class="vcard">
+            <div class="vcard-icon">🌡</div>
+            <div class="vcard-body">
+                <div class="vcard-val" id="v-temp">—</div>
+                <div class="vcard-name">Temperature</div>
+                <div class="vcard-range">Ideal: 36.5–37.5 °C</div>
+                <div class="vcard-bar-track"><div class="vcard-bar" id="vb-temp" style="width:50%;background:#10b981"></div></div>
+            </div>
+        </div>
+        <div class="vcard">
+            <div class="vcard-icon">🌬</div>
+            <div class="vcard-body">
+                <div class="vcard-val" id="v-rr">—</div>
+                <div class="vcard-name">Respiratory Rate</div>
+                <div class="vcard-range">Ideal: 12–20 bpm</div>
+                <div class="vcard-bar-track"><div class="vcard-bar" id="vb-rr" style="width:50%;background:#10b981"></div></div>
+            </div>
+        </div>
+        <div class="vcard">
+            <div class="vcard-icon">🦠</div>
+            <div class="vcard-body">
+                <div class="vcard-val" id="v-inf">—</div>
+                <div class="vcard-name">Infection Marker</div>
+                <div class="vcard-range">Ideal: &lt; 0.5</div>
+                <div class="vcard-bar-track"><div class="vcard-bar" id="vb-inf" style="width:20%;background:#10b981"></div></div>
+            </div>
+        </div>
+
+        <!-- Risk Contrib -->
+        <div class="pt-panel" style="margin-top:4px">
+            <div class="pt-panel-title"><span></span>Risk Contributors</div>
+            <div id="contrib-bars" style="display:flex;flex-direction:column;gap:5px"></div>
+        </div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="pt-center">
+        <!-- Risk Orb -->
+        <div class="risk-orb-wrap">
+            <div class="orb-container">
+                <canvas class="orb-canvas" id="orb-canvas" width="200" height="200"></canvas>
+                <div class="orb-center">
+                    <div class="orb-risk-pct" id="orb-pct">0%</div>
+                    <div class="orb-risk-lbl">Sepsis Risk</div>
+                    <div class="orb-risk-level" id="orb-level">—</div>
+                </div>
+            </div>
+            <div class="orb-metrics" style="grid-template-columns: 1fr;">
+                <div class="om"><div class="om-val" id="m-sirs">—</div><div class="om-lbl">SIRS Score (Rule-based)</div></div>
+            </div>
+        </div>
+
+        <!-- ECG -->
+        <div class="pt-ecg-wrap">
+            <div class="panel-title" style="margin-bottom:6px"><span style="width:4px;height:4px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px"></span>LIVE ECG — LEAD II</div>
+            <canvas class="pt-ecg-canvas" id="pt-ecg"></canvas>
+        </div>
+
+        <!-- Clinical Triggers -->
+        <div class="triggers-panel">
+            <div class="panel-title" style="margin-bottom:6px"><span style="width:4px;height:4px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:6px"></span>CLINICAL TRIGGERS</div>
+            <div class="triggers-wrap" id="pt-triggers">
+                <span class="trigger-tag ok">Awaiting analysis…</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="pt-right">
+        <!-- AI Synthesis -->
+        <div class="pt-panel">
+            <div class="pt-panel-title"><span></span>AI Clinical Synthesis</div>
+            <div class="ai-disclaimer-badge" style="margin-bottom:8px;">AI-generated — not a clinical order. Independent clinical judgment required.</div>
+            <div class="ai-synth-text" id="pt-synthesis">Awaiting AI analysis…</div>
+            <button class="pt-ai-btn" id="pt-ai-btn" onclick="requestAI()">⚡ Generate AI Synthesis</button>
+        </div>
+
+        <!-- Trend Chart -->
+        <div class="pt-panel">
+            <div class="pt-panel-title"><span></span>Risk Progression (last 40 readings)</div>
+            <canvas id="pt-trend" style="width:100%;height:80px;display:block"></canvas>
+        </div>
+
+        <!-- Timeline -->
+        <div class="pt-panel" style="flex:1">
+            <div class="pt-panel-title"><span></span>Clinical Timeline</div>
+            <div class="pt-timeline" id="pt-timeline">
+                <div class="tl-event STABLE"><div class="tl-time">—</div><div class="tl-msg">Session started</div></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<div id="alert-overlay"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.2/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="patient.js"></script>
+</body>
+</html>

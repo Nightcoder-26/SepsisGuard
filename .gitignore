@@ -47,3 +47,9 @@ desktop.ini
 .idea/
 *.swp
 *.swo
+
+# Raw Clinical Dataset (DO NOT COMMIT RAW DATA)
+data/raw/
+data/processed/
+*.psv
+*.psv.gz

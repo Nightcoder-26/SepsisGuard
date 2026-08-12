@@ -1,0 +1,105 @@
+{
+  "dataset_name": "PhysioNet 2019 Sepsis Challenge",
+  "total_patients": 2431,
+  "total_rows": 94429,
+  "patient_sepsis_prevalence_pct": 8.14,
+  "row_sepsis_prevalence_pct": 2.0,
+  "train_patients": 1944,
+  "val_patients": 243,
+  "test_patients": 244,
+  "patient_overlap": 0,
+  "two_feature_heuristic_acc": 84.28,
+  "old_synthetic_heuristic_acc": 92.5,
+  "missingness_before": {
+    "Heart_Rate": {
+      "missing_count": 9544,
+      "missing_pct": 10.11
+    },
+    "Oxygen_Level": {
+      "missing_count": 12801,
+      "missing_pct": 13.56
+    },
+    "Temperature": {
+      "missing_count": 62193,
+      "missing_pct": 65.86
+    },
+    "Blood_Pressure": {
+      "missing_count": 13703,
+      "missing_pct": 14.51
+    },
+    "Mean_Arterial_Pressure": {
+      "missing_count": 11842,
+      "missing_pct": 12.54
+    },
+    "Resp_Rate": {
+      "missing_count": 14383,
+      "missing_pct": 15.23
+    },
+    "Age": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Infection_Marker": {
+      "missing_count": 88158,
+      "missing_pct": 93.36
+    },
+    "Glucose": {
+      "missing_count": 78936,
+      "missing_pct": 83.59
+    },
+    "Creatinine": {
+      "missing_count": 88646,
+      "missing_pct": 93.88
+    },
+    "Platelets": {
+      "missing_count": 88742,
+      "missing_pct": 93.98
+    }
+  },
+  "missingness_after": {
+    "Heart_Rate": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Oxygen_Level": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Temperature": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Blood_Pressure": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Mean_Arterial_Pressure": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Resp_Rate": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Age": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Infection_Marker": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Glucose": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Creatinine": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    },
+    "Platelets": {
+      "missing_count": 0,
+      "missing_pct": 0.0
+    }
+  }
+}
