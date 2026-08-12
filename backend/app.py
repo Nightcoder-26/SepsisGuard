@@ -78,4 +78,5 @@ if __name__ == '__main__':
     logger.info("  SepsisGuard AI v3.0 - ICU Intelligence Ecosystem")
     logger.info("  http://localhost:5000")
     logger.info("=" * 55)
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
+    allow_unsafe = os.environ.get("FLASK_ENV") != "production"
+    socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=allow_unsafe)
