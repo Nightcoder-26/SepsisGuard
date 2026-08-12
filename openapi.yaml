@@ -1,0 +1,220 @@
+openapi: 3.0.3
+info:
+  title: SepsisGuard AI API
+  description: >
+    Central Hospital ICU Telemetry REST API for real-time sepsis risk prediction,
+    patient monitoring, and decision support narratives.
+    
+    ⚠️ DISCLAIMER: Technical demonstration and research prototype only.
+    Not clinically validated for autonomous real-patient diagnostic or treatment use.
+  version: 3.0.0
+servers:
+  - url: http://localhost:5000
+    description: Development / Prototype Server
+
+paths:
+  /health:
+    get:
+      summary: Enhanced System Health Check
+      description: Returns service status, ML model loading status, model version, and last successful inference timestamp.
+      responses:
+        '200':
+          description: System healthy and ML model loaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  model_loaded:
+                    type: boolean
+                    example: true
+                  model_version:
+                    type: string
+                    example: "v2_2026-08-12"
+                  last_successful_inference:
+                    type: string
+                    nullable: true
+                    example: "2026-08-12T18:30:00.000000"
+                  active_patients:
+                    type: integer
+                    example: 6
+                  service:
+                    type: string
+                    example: "SepsisGuard AI v3.0 Telemetry Engine"
+        '503':
+          description: System degraded (ML model not loaded)
+
+  /predict:
+    post:
+      summary: Sepsis Risk Prediction & SHAP Explainability
+      description: Evaluates patient vital sign inputs against frozen XGBoost model (threshold 0.27) and returns risk score, alert level, SIRS score, and model-faithful SHAP attributions.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VitalsInput'
+      responses:
+        '200':
+          description: Prediction executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictionOutput'
+        '400':
+          description: Bad Request — Malformed JSON payload
+        '401':
+          description: Unauthorized — Missing or invalid API key
+        '422':
+          description: Unprocessable Entity — Input validation failure
+        '429':
+          description: Too Many Requests — Rate limit exceeded
+        '500':
+          description: Internal Server Error — Inference failure
+
+  /patients:
+    get:
+      summary: Retrieve Active ICU Patient Telemetry Registry
+      description: Returns real-time state for all monitored ICU patients.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Patient registry state object
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    VitalsInput:
+      type: object
+      required:
+        - Heart_Rate
+        - Oxygen_Level
+        - Temperature
+        - Blood_Pressure
+        - Resp_Rate
+      properties:
+        Heart_Rate:
+          type: number
+          format: float
+          minimum: 20.0
+          maximum: 300.0
+          example: 115.0
+        Oxygen_Level:
+          type: number
+          format: float
+          minimum: 50.0
+          maximum: 100.0
+          example: 92.0
+        Temperature:
+          type: number
+          format: float
+          minimum: 30.0
+          maximum: 45.0
+          example: 38.5
+        Blood_Pressure:
+          type: number
+          format: float
+          minimum: 30.0
+          maximum: 250.0
+          example: 85.0
+        Resp_Rate:
+          type: number
+          format: float
+          minimum: 4.0
+          maximum: 70.0
+          example: 24.0
+        Age:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 120.0
+          default: 65.0
+          example: 68.0
+        Infection_Marker:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 100.0
+          default: 0.5
+          example: 0.8
+        Mean_Arterial_Pressure:
+          type: number
+          format: float
+          minimum: 20.0
+          maximum: 200.0
+          nullable: true
+          example: 65.0
+        Glucose:
+          type: number
+          format: float
+          minimum: 10.0
+          maximum: 1000.0
+          default: 120.0
+          example: 135.0
+        Creatinine:
+          type: number
+          format: float
+          minimum: 0.1
+          maximum: 30.0
+          default: 1.0
+          example: 1.2
+        Platelets:
+          type: number
+          format: float
+          minimum: 1.0
+          maximum: 1500.0
+          default: 200.0
+          example: 180.0
+        generate_synthesis:
+          type: boolean
+          default: false
+          example: false
+
+    PredictionOutput:
+      type: object
+      properties:
+        risk_score:
+          type: number
+          example: 78.5
+        risk_level:
+          type: string
+          example: "High"
+        risk_color:
+          type: string
+          example: "#ef4444"
+        alert_level:
+          type: string
+          example: "CRITICAL"
+        sirs_score:
+          type: integer
+          example: 3
+        explanation:
+          type: array
+          items:
+            type: string
+          example: ["Tachycardia", "Hypotension", "Hypoxia"]
+        shap_explanation:
+          type: object
+          properties:
+            method:
+              type: string
+              example: "SHAP TreeExplainer"
+            available:
+              type: boolean
+              example: true
+        disclaimer:
+          type: string
+          example: "Demo system. Trained on synthetic data. Not validated for clinical use. Not a substitute for clinical judgment."

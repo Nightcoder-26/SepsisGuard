@@ -1,0 +1,60 @@
+{
+  "model_name": "SepsisGuard ML Model (XGBoost)",
+  "version": "v2_2026-08-12",
+  "dataset": "PhysioNet 2019 Sepsis Challenge (Real Clinical Data)",
+  "features": [
+    "Heart_Rate",
+    "Oxygen_Level",
+    "Temperature",
+    "Blood_Pressure",
+    "Mean_Arterial_Pressure",
+    "Resp_Rate",
+    "Age",
+    "Infection_Marker",
+    "Glucose",
+    "Creatinine",
+    "Platelets",
+    "Heart_Rate_isnan",
+    "Temperature_isnan",
+    "Blood_Pressure_isnan",
+    "Resp_Rate_isnan",
+    "Infection_Marker_isnan",
+    "Heart_Rate_trend_6h",
+    "Resp_Rate_trend_6h",
+    "Mean_Arterial_Pressure_trend_6h",
+    "ICU_Length_of_Stay"
+  ],
+  "training_date": "2026-08-12",
+  "model_type": "XGBoost",
+  "hyperparameters": {
+    "scale_pos_weight": 49.04269513008673,
+    "n_estimators": 100,
+    "max_depth": 3,
+    "learning_rate": 0.05
+  },
+  "cross_validation_method": "GroupKFold (n_splits=5, grouped by Patient_ID)",
+  "selection_metric": "PR-AUC (average_precision)",
+  "threshold_selection_method": "Validation set optimization for target sensitivity >= 0.85",
+  "selected_threshold": 0.27,
+  "metrics": {
+    "cv_pr_auc_mean": 0.10572754757297456,
+    "cv_pr_auc_std": 0.013155041446247873,
+    "cv_roc_auc_mean": 0.7192641852367838,
+    "cv_roc_auc_std": 0.03731842315514225,
+    "val_sensitivity": 0.8766519823788547,
+    "val_specificity": 0.32375894212009537,
+    "val_precision": 0.030910220565392978,
+    "val_recall": 0.8766519823788547,
+    "val_f1": 0.059714928732183044
+  },
+  "known_limitations": [
+    "Trained on PhysioNet 2019 ICU data; external generalizability not yet validated.",
+    "High missingness in raw clinical vitals imputed via median values.",
+    "Longitudinal risk predictions require clinical verification."
+  ],
+  "intended_use": "Clinical decision-support tool for monitoring sepsis risk in adult ICU patients.",
+  "out_of_scope_use": [
+    "Not for standalone autonomous diagnosis or treatment decision making.",
+    "Not validated for pediatric or neonatal populations."
+  ]
+}

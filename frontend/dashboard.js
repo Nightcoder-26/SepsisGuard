@@ -3,7 +3,18 @@
  * Part 1: Core systems — Socket.IO, Cards, ECG, Triage, Timeline
  */
 
-const SERVER = 'http://localhost:5000';
+const SERVER  = 'http://localhost:5000';
+const API_KEY = 'sepsisguard_api_key_3f7b9a1c5d8e2f4a6c0b8d1e3f5a7c9b';
+
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
 // ─── State ────────────────────────────────────────
 const patients      = {};
@@ -16,7 +27,10 @@ let   modalChart    = null;
 let   selectedPid   = null; // for explainability panel
 
 // ─── Socket.IO ────────────────────────────────────
-const socket = io(SERVER, { transports: ['websocket', 'polling'] });
+const socket = io(SERVER, {
+    auth: { token: API_KEY },
+    transports: ['websocket', 'polling']
+});
 
 socket.on('connect', () => {
     setConn(true);
@@ -132,32 +146,32 @@ function createCard(pid, data) {
     card.innerHTML = `
         <div class="card-header">
             <div>
-                <div class="patient-name" id="pn-${pid}">${data.name || pid}</div>
-                <div class="patient-meta" id="pm-${pid}">${data.bed||'—'} · Age ${data.age||'—'}</div>
+                <div class="patient-name" id="pn-${escapeHtml(pid)}">${escapeHtml(data.name || pid)}</div>
+                <div class="patient-meta" id="pm-${escapeHtml(pid)}">${escapeHtml(data.bed || '—')} · Age ${escapeHtml(data.age || '—')}</div>
             </div>
-            <div class="alert-badge ${data.alert_level||'STABLE'}" id="pb-${pid}">${data.alert_level||'STABLE'}</div>
+            <div class="alert-badge ${escapeHtml(data.alert_level || 'STABLE')}" id="pb-${escapeHtml(pid)}">${escapeHtml(data.alert_level || 'STABLE')}</div>
         </div>
         <div class="ecg-strip">
             <span class="ecg-lbl">ECG II</span>
-            <canvas class="ecg-canvas" id="ecg-${pid}"></canvas>
+            <canvas class="ecg-canvas" id="ecg-${escapeHtml(pid)}"></canvas>
         </div>
         <div class="vitals-mini">
-            <div class="vc" id="vc-hr-${pid}"><div class="vval" id="vv-hr-${pid}">—</div><div class="vlbl">HR bpm</div></div>
-            <div class="vc" id="vc-bp-${pid}"><div class="vval" id="vv-bp-${pid}">—</div><div class="vlbl">SysBP</div></div>
-            <div class="vc" id="vc-spo2-${pid}"><div class="vval" id="vv-spo2-${pid}">—</div><div class="vlbl">SpO₂%</div></div>
-            <div class="vc" id="vc-temp-${pid}"><div class="vval" id="vv-temp-${pid}">—</div><div class="vlbl">Temp°C</div></div>
-            <div class="vc" id="vc-rr-${pid}"><div class="vval" id="vv-rr-${pid}">—</div><div class="vlbl">RR bpm</div></div>
-            <div class="vc" id="vc-inf-${pid}"><div class="vval" id="vv-inf-${pid}">—</div><div class="vlbl">InfMkr</div></div>
+            <div class="vc" id="vc-hr-${escapeHtml(pid)}"><div class="vval" id="vv-hr-${escapeHtml(pid)}">—</div><div class="vlbl">HR bpm</div></div>
+            <div class="vc" id="vc-bp-${escapeHtml(pid)}"><div class="vval" id="vv-bp-${escapeHtml(pid)}">—</div><div class="vlbl">SysBP</div></div>
+            <div class="vc" id="vc-spo2-${escapeHtml(pid)}"><div class="vval" id="vv-spo2-${escapeHtml(pid)}">—</div><div class="vlbl">SpO₂%</div></div>
+            <div class="vc" id="vc-temp-${escapeHtml(pid)}"><div class="vval" id="vv-temp-${escapeHtml(pid)}">—</div><div class="vlbl">Temp°C</div></div>
+            <div class="vc" id="vc-rr-${escapeHtml(pid)}"><div class="vval" id="vv-rr-${escapeHtml(pid)}">—</div><div class="vlbl">RR bpm</div></div>
+            <div class="vc" id="vc-inf-${escapeHtml(pid)}"><div class="vval" id="vv-inf-${escapeHtml(pid)}">—</div><div class="vlbl">InfMkr</div></div>
         </div>
         <div class="risk-row">
             <div class="risk-lbl">RISK</div>
-            <div class="risk-track"><div class="risk-fill" id="rf-${pid}" style="width:0%;background:#10b981"></div></div>
-            <div class="risk-pct" id="rp-${pid}">0%</div>
+            <div class="risk-track"><div class="risk-fill" id="rf-${escapeHtml(pid)}" style="width:0%;background:#10b981"></div></div>
+            <div class="risk-pct" id="rp-${escapeHtml(pid)}">0%</div>
         </div>
         <div class="metrics-row" style="grid-template-columns:1fr">
-            <div class="mc"><div class="mc-val" id="mc-sirs-${pid}">—</div><div class="mc-lbl">SIRS (Rule-based)</div></div>
+            <div class="mc"><div class="mc-val" id="mc-sirs-${escapeHtml(pid)}">—</div><div class="mc-lbl">SIRS (Rule-based)</div></div>
         </div>
-        <div class="synth-snip" id="ss-${pid}">Initializing AI…</div>
+        <div class="synth-snip" id="ss-${escapeHtml(pid)}">Initializing AI…</div>
     `;
     grid.appendChild(card);
 

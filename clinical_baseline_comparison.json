@@ -1,0 +1,96 @@
+{
+  "model_version": "v2_2026-08-12",
+  "dataset": "PhysioNet 2019 Sepsis Challenge (Held-Out Test Set)",
+  "test_observations": 9962,
+  "test_patients": 244,
+  "test_row_prevalence_pct": 1.64,
+  "methods": {
+    "ML_Model": {
+      "name": "XGBoost",
+      "operating_threshold": 0.27,
+      "metrics": {
+        "confusion_matrix": {
+          "TN": 3166,
+          "FP": 6633,
+          "FN": 5,
+          "TP": 158
+        },
+        "operating_threshold": 0.27,
+        "row_prevalence": 0.016362176269825335,
+        "sensitivity_recall": 0.9693251533742331,
+        "specificity": 0.3230941932850291,
+        "ppv_precision": 0.023266087468708584,
+        "npv": 0.9984232103437402,
+        "accuracy": 0.3336679381650271,
+        "f1_score": 0.04544147253379349,
+        "roc_auc": 0.8250096886060115,
+        "pr_auc": 0.11910901210577336,
+        "brier_score": 0.1523805155324965
+      },
+      "false_positives": 6633,
+      "false_negatives": 5
+    },
+    "SIRS": {
+      "name": "Rule-based SIRS score (not ML-derived)",
+      "rule_definition": "Temp > 38\u00b0C or < 36\u00b0C, HR > 90, RR > 20, WBC > 12 or < 4. Positive if score >= 2.",
+      "operating_threshold": "Score >= 2",
+      "metrics": {
+        "confusion_matrix": {
+          "TN": 8617,
+          "FP": 1182,
+          "FN": 125,
+          "TP": 38
+        },
+        "operating_threshold": 0.5,
+        "row_prevalence": 0.016362176269825335,
+        "sensitivity_recall": 0.2331288343558282,
+        "specificity": 0.87937544647413,
+        "ppv_precision": 0.03114754098360656,
+        "npv": 0.9857012125371768,
+        "accuracy": 0.868801445492873,
+        "f1_score": 0.0549530007230658,
+        "roc_auc": 0.6041736448629728,
+        "pr_auc": 0.02227888556778294,
+        "brier_score": 0.06375476811885164
+      },
+      "false_positives": 1182,
+      "false_negatives": 125
+    },
+    "Partial_qSOFA": {
+      "name": "qSOFA (partial \u2014 mentation unavailable)",
+      "rule_definition": "RR >= 22, SBP <= 100. Positive if score >= 2.",
+      "operating_threshold": "Score >= 2",
+      "metrics": {
+        "confusion_matrix": {
+          "TN": 9497,
+          "FP": 302,
+          "FN": 154,
+          "TP": 9
+        },
+        "operating_threshold": 1.0,
+        "row_prevalence": 0.016362176269825335,
+        "sensitivity_recall": 0.05521472392638037,
+        "specificity": 0.96918052862537,
+        "ppv_precision": 0.028938906752411574,
+        "npv": 0.984043104341519,
+        "accuracy": 0.9542260590242924,
+        "f1_score": 0.03797468354430379,
+        "roc_auc": 0.5853044977044735,
+        "pr_auc": 0.020742012916055194,
+        "brier_score": 0.10783477213410962
+      },
+      "false_positives": 302,
+      "false_negatives": 154
+    },
+    "NEWS2": {
+      "implemented": false,
+      "reason": "NEWS2 not calculated because required oxygen/consciousness variables are unavailable in the current dataset."
+    }
+  },
+  "statistical_interpretation": {
+    "sensitivity_comparison": "ML achieved 96.93% sensitivity compared to SIRS (23.31%) and Partial qSOFA (5.52%).",
+    "specificity_comparison": "Partial qSOFA achieved highest specificity (96.92%) compared to ML (32.31%) and SIRS (87.94%).",
+    "roc_auc_comparison": "ML achieved superior overall discrimination (ROC-AUC = 0.8250) compared to SIRS (0.6042) and Partial qSOFA (0.5853).",
+    "pr_auc_comparison": "ML achieved higher PR-AUC (0.1191) compared to SIRS (0.0223) and Partial qSOFA (0.0207)."
+  }
+}

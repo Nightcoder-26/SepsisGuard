@@ -73,8 +73,10 @@ class TestPhase1MedicalSafety(unittest.TestCase):
 
     def test_flask_predict_endpoint(self):
         """Verify /predict HTTP endpoint structure and disclaimer."""
-        client = app.test_client()
-        response = client.post('/predict', json=self.sample_vitals)
+        import backend.app as app_mod
+        client = app_mod.app.test_client()
+        headers = {"X-API-Key": app_mod.API_KEY}
+        response = client.post('/predict', json=self.sample_vitals, headers=headers)
         self.assertEqual(response.status_code, 200, f"Predict failed with status {response.status_code}: {response.get_data(as_text=True)}")
         data = response.get_json()
         

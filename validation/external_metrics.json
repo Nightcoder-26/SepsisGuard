@@ -1,0 +1,7 @@
+{
+  "status": "BLOCKED",
+  "reason": "Independent external hospital dataset unavailable.",
+  "model_version": "v2_2026-08-12",
+  "threshold": 0.27,
+  "message": "Framework is ready. Pass an external dataset path to run evaluation."
+}

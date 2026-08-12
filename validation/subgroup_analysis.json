@@ -1,0 +1,345 @@
+{
+  "model_version": "v2_2026-08-12",
+  "threshold": 0.27,
+  "total_patients": 244,
+  "total_rows": 9962,
+  "overall_test_metrics": {
+    "group_name": "Overall Test Set",
+    "n_patients": 244,
+    "n_rows": 9962,
+    "n_pos": 163,
+    "n_neg": 9799,
+    "prevalence": 0.0164,
+    "status": "VALIDATED",
+    "sensitivity": 0.9693,
+    "sensitivity_ci_95": [
+      0.9302,
+      0.9868
+    ],
+    "specificity": 0.3231,
+    "specificity_ci_95": [
+      0.3139,
+      0.3324
+    ],
+    "ppv": 0.0233,
+    "ppv_ci_95": [
+      0.0199,
+      0.0271
+    ],
+    "npv": 0.9984,
+    "npv_ci_95": [
+      0.9963,
+      0.9993
+    ],
+    "accuracy": 0.3337,
+    "roc_auc": 0.825,
+    "roc_auc_ci_95": [
+      0.7944,
+      0.8552
+    ],
+    "pr_auc": 0.1191,
+    "brier": 0.1524
+  },
+  "age_subgroups": {
+    "<40 years": {
+      "group_name": "Age: <40 years",
+      "n_patients": 33,
+      "n_rows": 1509,
+      "n_pos": 29,
+      "n_neg": 1480,
+      "prevalence": 0.0192,
+      "status": "VALIDATED",
+      "sensitivity": 0.9655,
+      "sensitivity_ci_95": [
+        0.8282,
+        0.9939
+      ],
+      "specificity": 0.3716,
+      "specificity_ci_95": [
+        0.3474,
+        0.3965
+      ],
+      "ppv": 0.0292,
+      "ppv_ci_95": [
+        0.0203,
+        0.0419
+      ],
+      "npv": 0.9982,
+      "npv_ci_95": [
+        0.9898,
+        0.9997
+      ],
+      "accuracy": 0.383,
+      "roc_auc": 0.8105,
+      "roc_auc_ci_95": [
+        0.7391,
+        0.8791
+      ],
+      "pr_auc": 0.125,
+      "brier": 0.1852
+    },
+    "40\u201364 years": {
+      "group_name": "Age: 40\u201364 years",
+      "n_patients": 107,
+      "n_rows": 3995,
+      "n_pos": 67,
+      "n_neg": 3928,
+      "prevalence": 0.0168,
+      "status": "VALIDATED",
+      "sensitivity": 0.9851,
+      "sensitivity_ci_95": [
+        0.9202,
+        0.9974
+      ],
+      "specificity": 0.4458,
+      "specificity_ci_95": [
+        0.4303,
+        0.4614
+      ],
+      "ppv": 0.0294,
+      "ppv_ci_95": [
+        0.0232,
+        0.0373
+      ],
+      "npv": 0.9994,
+      "npv_ci_95": [
+        0.9968,
+        0.9999
+      ],
+      "accuracy": 0.4548,
+      "roc_auc": 0.8892,
+      "roc_auc_ci_95": [
+        0.8537,
+        0.9229
+      ],
+      "pr_auc": 0.1913,
+      "brier": 0.0993
+    },
+    "65\u201379 years": {
+      "group_name": "Age: 65\u201379 years",
+      "n_patients": 72,
+      "n_rows": 3190,
+      "n_pos": 57,
+      "n_neg": 3133,
+      "prevalence": 0.0179,
+      "status": "VALIDATED",
+      "sensitivity": 1.0,
+      "sensitivity_ci_95": [
+        0.9369,
+        1.0
+      ],
+      "specificity": 0.2257,
+      "specificity_ci_95": [
+        0.2114,
+        0.2406
+      ],
+      "ppv": 0.023,
+      "ppv_ci_95": [
+        0.0178,
+        0.0296
+      ],
+      "npv": 1.0,
+      "npv_ci_95": [
+        0.9946,
+        1.0
+      ],
+      "accuracy": 0.2395,
+      "roc_auc": 0.8686,
+      "roc_auc_ci_95": [
+        0.8207,
+        0.9127
+      ],
+      "pr_auc": 0.1487,
+      "brier": 0.1816
+    },
+    "80+ years": {
+      "group_name": "Age: 80+ years",
+      "n_patients": 32,
+      "n_rows": 1268,
+      "n_pos": 10,
+      "n_neg": 1258,
+      "prevalence": 0.0079,
+      "status": "VALIDATED",
+      "sensitivity": 0.7,
+      "sensitivity_ci_95": [
+        0.3968,
+        0.8922
+      ],
+      "specificity": 0.1256,
+      "specificity_ci_95": [
+        0.1084,
+        0.1451
+      ],
+      "ppv": 0.0063,
+      "ppv_ci_95": [
+        0.0031,
+        0.013
+      ],
+      "npv": 0.9814,
+      "npv_ci_95": [
+        0.9467,
+        0.9936
+      ],
+      "accuracy": 0.1301,
+      "roc_auc": 0.4479,
+      "roc_auc_ci_95": [
+        0.2621,
+        0.6275
+      ],
+      "pr_auc": 0.0076,
+      "brier": 0.2072
+    }
+  },
+  "sex_subgroups": {
+    "Female": {
+      "group_name": "Sex: Female",
+      "n_patients": 103,
+      "n_rows": 3925,
+      "n_pos": 28,
+      "n_neg": 3897,
+      "prevalence": 0.0071,
+      "status": "VALIDATED",
+      "sensitivity": 0.9643,
+      "sensitivity_ci_95": [
+        0.8229,
+        0.9937
+      ],
+      "specificity": 0.3308,
+      "specificity_ci_95": [
+        0.3162,
+        0.3457
+      ],
+      "ppv": 0.0102,
+      "ppv_ci_95": [
+        0.0071,
+        0.0149
+      ],
+      "npv": 0.9992,
+      "npv_ci_95": [
+        0.9956,
+        0.9999
+      ],
+      "accuracy": 0.3353,
+      "roc_auc": 0.818,
+      "roc_auc_ci_95": [
+        0.7222,
+        0.9028
+      ],
+      "pr_auc": 0.2983,
+      "brier": 0.1283
+    },
+    "Male": {
+      "group_name": "Sex: Male",
+      "n_patients": 141,
+      "n_rows": 6037,
+      "n_pos": 135,
+      "n_neg": 5902,
+      "prevalence": 0.0224,
+      "status": "VALIDATED",
+      "sensitivity": 0.9704,
+      "sensitivity_ci_95": [
+        0.9263,
+        0.9884
+      ],
+      "specificity": 0.318,
+      "specificity_ci_95": [
+        0.3063,
+        0.33
+      ],
+      "ppv": 0.0315,
+      "ppv_ci_95": [
+        0.0266,
+        0.0373
+      ],
+      "npv": 0.9979,
+      "npv_ci_95": [
+        0.9945,
+        0.9992
+      ],
+      "accuracy": 0.3326,
+      "roc_auc": 0.8178,
+      "roc_auc_ci_95": [
+        0.7845,
+        0.8475
+      ],
+      "pr_auc": 0.1059,
+      "brier": 0.168
+    }
+  },
+  "icu_stay_subgroups": {
+    "Early Stay (<=24h)": {
+      "group_name": "ICU Stay: Early Stay (<=24h)",
+      "n_patients": 244,
+      "n_rows": 5458,
+      "n_pos": 53,
+      "n_neg": 5405,
+      "prevalence": 0.0097,
+      "status": "VALIDATED",
+      "sensitivity": 0.9057,
+      "sensitivity_ci_95": [
+        0.7975,
+        0.959
+      ],
+      "specificity": 0.3412,
+      "specificity_ci_95": [
+        0.3286,
+        0.3539
+      ],
+      "ppv": 0.0133,
+      "ppv_ci_95": [
+        0.01,
+        0.0176
+      ],
+      "npv": 0.9973,
+      "npv_ci_95": [
+        0.9937,
+        0.9988
+      ],
+      "accuracy": 0.3466,
+      "roc_auc": 0.6969,
+      "roc_auc_ci_95": [
+        0.6361,
+        0.7573
+      ],
+      "pr_auc": 0.0227,
+      "brier": 0.1169
+    },
+    "Later Stay (>24h)": {
+      "group_name": "ICU Stay: Later Stay (>24h)",
+      "n_patients": 184,
+      "n_rows": 4504,
+      "n_pos": 110,
+      "n_neg": 4394,
+      "prevalence": 0.0244,
+      "status": "VALIDATED",
+      "sensitivity": 1.0,
+      "sensitivity_ci_95": [
+        0.9663,
+        1.0
+      ],
+      "specificity": 0.3009,
+      "specificity_ci_95": [
+        0.2875,
+        0.3146
+      ],
+      "ppv": 0.0346,
+      "ppv_ci_95": [
+        0.0288,
+        0.0415
+      ],
+      "npv": 1.0,
+      "npv_ci_95": [
+        0.9971,
+        1.0
+      ],
+      "accuracy": 0.3179,
+      "roc_auc": 0.8682,
+      "roc_auc_ci_95": [
+        0.8401,
+        0.8944
+      ],
+      "pr_auc": 0.1572,
+      "brier": 0.1954
+    }
+  }
+}

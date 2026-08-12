@@ -108,6 +108,18 @@ async function checkHealth() {
     }
 }
 
+const API_KEY = 'sepsisguard_api_key_3f7b9a1c5d8e2f4a6c0b8d1e3f5a7c9b';
+
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 // Prediction Logic
 async function getPrediction(vitals) {
     const btn = document.getElementById("predict-btn");
@@ -116,7 +128,10 @@ async function getPrediction(vitals) {
     try {
         const resp = await fetch(`${API_BASE}/predict`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': API_KEY
+            },
             body: JSON.stringify(vitals)
         });
         
@@ -223,7 +238,7 @@ function updateUI(res) {
     }
 
     // Vitals Summary
-    vitalsSummaryList.innerHTML = res.explanation.map(exp => `<li><i data-lucide="check-circle-2"></i> ${exp}</li>`).join("");
+    vitalsSummaryList.innerHTML = (res.explanation || []).map(exp => `<li><i data-lucide="check-circle-2"></i> ${escapeHtml(exp)}</li>`).join("");
     lucide.createIcons();
     
     // AI Clinical Synthesis Generation

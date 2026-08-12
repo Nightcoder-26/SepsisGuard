@@ -45,6 +45,11 @@ To prevent data leakage, dataset splitting is performed strictly at the **patien
 
 > **Enforced Assertion**: $\text{set}(\text{train\_patient\_ids}) \cap \text{set}(\text{test\_patient\_ids}) = \emptyset$. No patient records overlap across splits.
 
+### Cryptographic Dataset Hashes (SHA-256)
+- `data/processed/train.csv`: `22f169f41749e31cf6d8f37eeab3996b513893b1bebcccd5c6e889c332bc91b2`
+- `data/processed/val.csv`: `059e5606b89c8a7befccd17a62b9ebf2db73ef6ebd7bd1e90f881540833b8b1b`
+- `data/processed/test.csv`: `dd4b90c506d08580d4b7814851f1ca7d73ea3df1218c04d55090c4a236c9a107`
+
 ### Missingness Analysis & Imputation Strategy
 - **Missingness Audit**: Real ICU data contains significant missingness due to intermittent lab testing and non-continuous vital monitoring.
 - **Missingness Indicators**: Added binary indicator features (e.g. `HR_isnan`) to preserve clinical sampling frequency signals.

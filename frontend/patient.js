@@ -3,8 +3,19 @@
  * Real-time single-patient monitoring with animated risk orb
  */
 
-const SERVER = 'http://localhost:5000';
-const pid    = new URLSearchParams(window.location.search).get('pid') || 'P001';
+const SERVER  = 'http://localhost:5000';
+const API_KEY = 'sepsisguard_api_key_3f7b9a1c5d8e2f4a6c0b8d1e3f5a7c9b';
+const pid     = new URLSearchParams(window.location.search).get('pid') || 'P001';
+
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
 let trendChart = null;
 let ecgRenderer = null;
@@ -14,7 +25,10 @@ let currentColor = '#10b981';
 let currentLevel = 'STABLE';
 
 // ─── Socket.IO ──────────────────────────────────
-const socket = io(SERVER, { transports: ['websocket', 'polling'] });
+const socket = io(SERVER, {
+    auth: { token: API_KEY },
+    transports: ['websocket', 'polling']
+});
 
 socket.on('connect', () => setConn(true));
 socket.on('disconnect', () => setConn(false));
@@ -131,20 +145,58 @@ function setVCard(valId, barId, val, lo, hi, invert, unit) {
     }
 }
 
-// ─── Contributions ──────────────────────────────
-function renderContribs(contribs) {
+// ─── Model Explanation (SHAP) ───────────────────
+function renderContribs(shap_data) {
     const el = document.getElementById('contrib-bars');
     if (!el) return;
-    const total  = Object.values(contribs).reduce((s, v) => s + v, 0) || 1;
-    const sorted = Object.entries(contribs).sort((a, b) => b[1] - a[1]);
-    el.innerHTML  = '';
-    sorted.forEach(([lbl, val]) => {
-        const pct = Math.min(Math.round((val / total) * 100), 100);
+    el.innerHTML = '';
+
+    if (!shap_data || shap_data.available === false) {
+        el.innerHTML = '<div style="font-size:0.7rem;color:var(--text-2);padding:6px">Model explanation is temporarily unavailable.</div>';
+        return;
+    }
+
+    const features = shap_data.features || [];
+    if (features.length === 0) {
+        el.innerHTML = '<div style="font-size:0.7rem;color:var(--text-2);padding:6px">No significant feature attributions.</div>';
+        return;
+    }
+
+    // Subheader
+    const subheader = document.createElement('div');
+    subheader.style.cssText = 'font-size:0.62rem;color:var(--accent);font-family:var(--mono);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center';
+    subheader.innerHTML = '<span>&larr; Decreases Risk</span><span>Model Explanation — SHAP</span><span>Increases Risk &rarr;</span>';
+    el.appendChild(subheader);
+
+    // Max absolute SHAP value for scaling bars (max 45% width on either side of 50% center)
+    const maxShap = Math.max(...features.map(f => Math.abs(f.shap_value || 0)), 0.05);
+
+    features.forEach(f => {
+        const name = f.display_name || f.feature;
+        const valStr = f.value != null ? (f.unit ? `${f.value} ${f.unit}` : `${f.value}`) : '';
+        const shapVal = f.shap_value || 0;
+        const isPos = shapVal >= 0;
+        const widthPct = Math.min(Math.round((Math.abs(shapVal) / maxShap) * 45), 45);
+        
         const row = document.createElement('div');
-        row.className = 'eb';
-        row.innerHTML = `<div class="eb-lbl">${lbl}</div><div class="eb-track"><div class="eb-fill" style="width:0%" data-pct="${pct}"></div></div><div class="eb-pct">${pct}%</div>`;
+        row.style.cssText = 'display:flex;flex-direction:column;gap:2px;margin-bottom:6px;background:rgba(255,255,255,0.02);padding:6px;border-radius:4px;font-size:0.7rem';
+
+        const signStr = isPos ? `+${shapVal.toFixed(3)}` : shapVal.toFixed(3);
+        const dirArrow = isPos ? '↑' : '↓';
+        const barColor = isPos ? '#ef4444' : '#10b981';
+
+        row.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;font-weight:600">
+                <span style="color:var(--text-1)">${name} <span style="font-weight:400;color:var(--text-2);font-size:0.63rem">(${valStr})</span></span>
+                <span style="color:${barColor};font-family:var(--mono)">${dirArrow} ${signStr}</span>
+            </div>
+            <div style="position:relative;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin-top:3px">
+                <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.25);z-index:2"></div>
+                <div style="position:absolute;top:0;bottom:0;background:${barColor};border-radius:2px;${isPos ? `left:50%;width:${widthPct}%` : `right:50%;width:${widthPct}%`}"></div>
+            </div>
+            <div style="font-size:0.62rem;color:var(--text-2);margin-top:2px">${f.formatted_text || ''}</div>
+        `;
         el.appendChild(row);
-        requestAnimationFrame(() => { row.querySelector('.eb-fill').style.width = pct + '%'; });
     });
 }
 

@@ -1,0 +1,16 @@
+{
+  "model_version": "v2_2026-08-12",
+  "model_artifact": "model/model_v2_2026-08-12.joblib",
+  "model_sha256": "59a5dfe7f6f329b75f295c3017c9b3458fbb8a21107d99819daffdaf792956e1",
+  "scaler_artifact": "model/scaler_v2_2026-08-12.joblib",
+  "selected_threshold": 0.27,
+  "development_dataset": "data/processed/train.csv",
+  "development_test_dataset": "data/processed/test.csv",
+  "test_dataset_sha256": "dd4b90c506d08580d4b7814851f1ca7d73ea3df1218c04d55090c4a236c9a107",
+  "validation_date": "2026-08-12",
+  "random_seed": 42,
+  "bootstrap_iterations": 1000,
+  "python_version": "3.11.9",
+  "model_frozen": true,
+  "external_validation_status": "BLOCKED — independent dataset unavailable"
+}

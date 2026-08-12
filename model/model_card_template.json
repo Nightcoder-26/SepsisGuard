@@ -1,0 +1,34 @@
+{
+  "model_name": "SepsisGuard ML Model",
+  "version": "v2_2026-08-12",
+  "dataset": "PhysioNet 2019 Sepsis Challenge (Real Clinical Data)",
+  "features": [],
+  "training_date": "2026-08-12",
+  "model_type": "",
+  "hyperparameters": {},
+  "cross_validation_method": "GroupKFold (n_splits=5, grouped by Patient_ID)",
+  "selection_metric": "PR-AUC (average_precision)",
+  "threshold_selection_method": "Validation set optimization for target sensitivity >= 0.85",
+  "selected_threshold": 0.5,
+  "metrics": {
+    "cv_pr_auc_mean": 0.0,
+    "cv_pr_auc_std": 0.0,
+    "cv_roc_auc_mean": 0.0,
+    "cv_roc_auc_std": 0.0,
+    "val_sensitivity": 0.0,
+    "val_specificity": 0.0,
+    "val_precision": 0.0,
+    "val_recall": 0.0,
+    "val_f1": 0.0
+  },
+  "known_limitations": [
+    "Trained on PhysioNet 2019 ICU data; external generalizability not yet validated.",
+    "Data has high baseline missingness imputed via median values.",
+    "Longitudinal risk predictions require careful calibration."
+  ],
+  "intended_use": "Clinical decision-support tool for monitoring sepsis risk in adult ICU patients.",
+  "out_of_scope_use": [
+    "Not for standalone autonomous diagnosis or treatment decision making.",
+    "Not validated for pediatric or neonatal populations."
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "model_version": "v2_2026-08-12",
+  "model_type": "XGBoost",
+  "dataset_name": "PhysioNet 2019 Sepsis Challenge (Held-out Test Split)",
+  "test_counts": {
+    "test_patients": 244,
+    "test_observations": 9962,
+    "positive_rows": 163,
+    "negative_rows": 9799,
+    "row_prevalence_pct": 1.64,
+    "patient_prevalence_pct": 6.97
+  },
+  "selected_threshold_provenance": "Validation set optimization for target sensitivity >= 0.85 (Phase 3)",
+  "operating_threshold": 0.27,
+  "metrics": {
+    "confusion_matrix": {
+      "TN": 3166,
+      "FP": 6633,
+      "FN": 5,
+      "TP": 158
+    },
+    "operating_threshold": 0.27,
+    "row_prevalence": 0.016362176269825335,
+    "sensitivity_recall": 0.9693251533742331,
+    "specificity": 0.3230941932850291,
+    "ppv_precision": 0.023266087468708584,
+    "npv": 0.9984232103437402,
+    "accuracy": 0.3336679381650271,
+    "f1_score": 0.04544147253379349,
+    "roc_auc": 0.8250096886060115,
+    "pr_auc": 0.11910901210577336,
+    "brier_score": 0.1523805155324965
+  },
+  "calibration": {
+    "status": "POOR",
+    "brier_score": 0.1523805155324965,
+    "explanation": "Significant probability distortion (Mean Absolute Calibration Error = 0.4036)."
+  },
+  "physionet_utility_score": {
+    "score": null,
+    "calculated": false,
+    "reason": "PhysioNet utility score not calculated because the current preprocessed evaluation dataset representation does not provide the required temporal sepsis onset time annotations."
+  },
+  "test_set_integrity": "PASS (0 patient overlap across train/val/test)"
+}

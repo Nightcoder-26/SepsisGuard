@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  sepsisguard-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sepsisguard_api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-sepsisguard_secret_key_8f9a2b4c6d8e1f3a5c7b9d2e4f6a8c0b}
+      - API_KEY=${API_KEY:-sepsisguard_api_key_3f7b9a1c5d8e2f4a6c0b8d1e3f5a7c9b}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-http://localhost:5000,http://127.0.0.1:5000}
+      - PREDICT_RATE_LIMIT=${PREDICT_RATE_LIMIT:-60 per minute}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
