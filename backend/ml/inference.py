@@ -122,6 +122,21 @@ def run_ml_pipeline(pid, vitals, generate_ai=False):
         shap_explanation = explain_prediction(model, explainer, feature_dict, feature_cols, top_k=5)
         alert_level = "CRITICAL" if prob >= 50.0 else ("WARNING" if prob >= 27.0 else "STABLE")
 
+        if not explanation:
+            if prob >= 27.0:
+                pos_feat = None
+                if isinstance(shap_explanation, dict) and "features" in shap_explanation:
+                    for f in shap_explanation["features"]:
+                        if f.get("direction") == "increases_risk":
+                            pos_feat = f.get("display_name")
+                            break
+                if pos_feat:
+                    explanation = [f"Elevated model risk estimate ({pos_feat})"]
+                else:
+                    explanation = ["Elevated model risk estimate"]
+            else:
+                explanation = ["All vital signs within normal ranges."]
+
         ai_synthesis = ""
         if generate_ai:
             from backend.services.copilot import generate_gemini_synthesis

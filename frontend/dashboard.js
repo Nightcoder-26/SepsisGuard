@@ -338,7 +338,13 @@ function fireToast(pkt, level = 'CRITICAL') {
     const icon = isCrit ? '🚨' : '⚠️';
     const titleClass = isCrit ? 'at-title' : 'at-title warn';
     const titleText = isCrit ? 'CRITICAL ALERT' : 'WARNING ALERT';
-    t.innerHTML = `<div class="at-icon">${icon}</div><div><div class="${titleClass}">${titleText} — ${pkt.bed || pkt.pid}</div><div class="at-msg">${pkt.name}: ${pkt.risk_score?.toFixed(0)}% · ${(pkt.explanation || [])[0] || 'Elevated sepsis risk'}</div></div>`;
+    
+    let sub = (pkt.explanation && pkt.explanation.length > 0) ? pkt.explanation[0] : 'Elevated sepsis risk';
+    if (sub === 'All vital signs within normal ranges.') {
+        sub = isCrit ? 'Immediate clinical evaluation recommended' : 'Elevated model risk estimate';
+    }
+
+    t.innerHTML = `<div class="at-icon">${icon}</div><div><div class="${titleClass}">${titleText} — ${pkt.bed || pkt.pid}</div><div class="at-msg">${pkt.name}: ${pkt.risk_score?.toFixed(0)}% · ${sub}</div></div>`;
     overlay.prepend(t);
     setTimeout(() => t.remove(), 6500);
 }
