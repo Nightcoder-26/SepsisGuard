@@ -510,14 +510,16 @@ body::before{content:'';position:fixed;inset:0;
 .clinician-role { font-size: 0.55rem; color: var(--text-2); }
 
 .summary-metrics-bar {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     padding: 8px 12px;
     background: rgba(15, 23, 42, 0.4);
     border-bottom: 1px solid var(--border-glow);
 }
 .sm-card {
+    flex: 1 1 150px;
+    min-width: 140px;
     background: rgba(2, 6, 23, 0.5);
     border: 1px solid var(--border-glow);
     border-radius: 6px;
