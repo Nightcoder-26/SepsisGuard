@@ -133,9 +133,9 @@ function updateStatusBar() {
         if (l === 'CRITICAL') c++; else if (l === 'WARNING') w++; else s++;
     }
     const total = Object.keys(patients).length;
-    document.getElementById('sv-crit').textContent = c;
-    document.getElementById('sv-warn').textContent = w;
-    document.getElementById('sv-ok').textContent   = s;
+    const svCrit = document.getElementById('sv-crit'); if (svCrit) svCrit.textContent = c;
+    const svWarn = document.getElementById('sv-warn'); if (svWarn) svWarn.textContent = w;
+    const svOk   = document.getElementById('sv-ok');   if (svOk)   svOk.textContent   = s;
 
     const smCrit  = document.getElementById('sm-crit');  if (smCrit)  smCrit.textContent  = c;
     const smWarn  = document.getElementById('sm-warn');  if (smWarn)  smWarn.textContent  = w;
