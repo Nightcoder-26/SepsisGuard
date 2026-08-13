@@ -198,9 +198,12 @@ body{overflow-y:auto}
             <span id="assessment-error-msg">Risk assessment could not be completed. Please verify patient data and try again.</span>
         </div>
 
-        <!-- Risk Contrib -->
+        <!-- Risk Contrib / SHAP Model Explanation -->
         <div class="pt-panel" style="margin-top:4px">
-            <div class="pt-panel-title"><span></span>Model Explanation — SHAP</div>
+            <div class="pt-panel-title"><span></span>Why did the model produce this result?</div>
+            <div style="font-size:0.6rem;color:var(--text-2);margin-bottom:6px;font-family:var(--mono)">
+                These values represent feature attributions that influenced the model's prediction. SHAP represents feature contribution, not direct physiological causality.
+            </div>
             <div id="contrib-bars" style="display:flex;flex-direction:column;gap:5px"></div>
         </div>
     </div>
@@ -218,8 +221,30 @@ body{overflow-y:auto}
                 </div>
             </div>
             <div class="orb-metrics" style="grid-template-columns: 1fr 1fr; gap: 8px;">
-                <div class="om"><div class="om-val" id="m-sirs">—</div><div class="om-lbl">SIRS Score (Rule-based)</div></div>
-                <div class="om"><div class="om-val" id="m-qsofa">—</div><div class="om-lbl">Partial qSOFA (0-2)</div><div style="font-size:0.55rem;color:#94a3b8;margin-top:1px">Partial — mentation unavailable</div></div>
+                <div class="om">
+                    <div class="om-val" id="m-sirs">—</div>
+                    <div class="om-lbl">SIRS Score</div>
+                    <div style="font-size:0.55rem;color:#94a3b8;margin-top:1px">Rule-based clinical reference</div>
+                </div>
+                <div class="om">
+                    <div class="om-val" id="m-qsofa">—</div>
+                    <div class="om-lbl">Partial qSOFA</div>
+                    <div style="font-size:0.55rem;color:#94a3b8;margin-top:1px">Partial — mentation unavailable</div>
+                </div>
+            </div>
+
+            <!-- CLINICAL REFERENCE SCORES BREAKDOWN -->
+            <div style="margin-top:8px;padding:8px;background:rgba(2,6,23,0.5);border:1px solid var(--border-glow);border-radius:6px;width:100%">
+                <div class="panel-title" style="margin-bottom:4px;font-size:0.62rem"><span></span>CLINICAL REFERENCE CRITERIA CHECKLIST</div>
+                <div style="font-size:0.58rem;color:var(--text-2);margin-bottom:6px;font-family:var(--mono)">Number of criteria met for rule-based reference systems:</div>
+                <div class="criteria-checklist" id="sirs-qsofa-checklist">
+                    <div class="chk-item" id="chk-temp"><span>• Temperature (>38.0°C / <36.0°C)</span><span class="chk-badge">—</span></div>
+                    <div class="chk-item" id="chk-hr"><span>• Heart Rate (>90 bpm)</span><span class="chk-badge">—</span></div>
+                    <div class="chk-item" id="chk-rr"><span>• Respiratory Rate (>20 /min)</span><span class="chk-badge">—</span></div>
+                    <div class="chk-item" id="chk-wbc"><span>• Infection Marker / WBC (>0.5)</span><span class="chk-badge">—</span></div>
+                    <div class="chk-item" id="chk-qrr"><span>• qSOFA Resp Rate (≥22 /min)</span><span class="chk-badge">—</span></div>
+                    <div class="chk-item" id="chk-sbp"><span>• qSOFA Systolic BP (≤100 mmHg)</span><span class="chk-badge">—</span></div>
+                </div>
             </div>
         </div>
 

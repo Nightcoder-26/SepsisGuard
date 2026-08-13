@@ -23,18 +23,18 @@
         <div class="brand-logo">⚕</div>
         <div>
             <div class="brand-name">SepsisGuard AI</div>
-            <div class="brand-sub">ICU Intelligence Ecosystem v3.0</div>
+            <div class="brand-sub">Clinical Decision-Support Platform v3.0</div>
         </div>
     </div>
     <div class="cb-divider"></div>
-    <div class="net-flow"><div class="flow-dot"></div>TELEMETRY STREAM — 6 DEVICES ACTIVE</div>
+    <div class="net-flow"><div class="flow-dot"></div>LIVE TELEMETRY ● CONNECTED</div>
     <div class="cb-divider"></div>
-    <div class="cb-stats">
-        <div class="stat-chip crit" id="sc-crit"><div class="stat-val" id="sv-crit">0</div><div class="stat-lbl">Critical</div></div>
-        <div class="cb-divider"></div>
-        <div class="stat-chip warn" id="sc-warn"><div class="stat-val" id="sv-warn">0</div><div class="stat-lbl">Warning</div></div>
-        <div class="cb-divider"></div>
-        <div class="stat-chip ok"  id="sc-ok"  ><div class="stat-val" id="sv-ok">0</div>  <div class="stat-lbl">Stable</div></div>
+    <div class="clinician-profile">
+        <div class="clinician-avatar">DR</div>
+        <div class="clinician-info">
+            <div class="clinician-name">Dr. ICU Specialist</div>
+            <div class="clinician-role">Role: Clinician</div>
+        </div>
     </div>
     <div class="sys-status">
         <div class="sdot" id="conn-dot"></div>
@@ -43,8 +43,46 @@
     <button class="audio-toggle-btn" onclick="telemetryAudio.toggleSound()" title="Toggle Medical Alert Audio Beeps">
         <span>🔊</span><span>AUDIO: ON</span>
     </button>
+    <button class="about-model-btn" onclick="openAboutModelModal()" title="View Model Metadata & Clinical References">
+        <span>ℹ️</span><span>About Assessment</span>
+    </button>
     <div class="cb-clock" id="clock">00:00:00</div>
 </header>
+
+<!-- ══ CLINICIAN DASHBOARD SUMMARY METRICS ══ -->
+<div class="summary-metrics-bar">
+    <div class="sm-card">
+        <div><div class="sm-lbl">Active Monitored Patients</div><div class="sm-val" id="sm-total">6</div></div>
+        <span style="font-size:1.2rem">👥</span>
+    </div>
+    <div class="sm-card" style="border-color:rgba(239,68,68,0.3)">
+        <div><div class="sm-lbl">High Risk (Critical)</div><div class="sm-val" id="sm-crit" style="color:var(--danger)">0</div></div>
+        <span style="font-size:1.2rem">🚨</span>
+    </div>
+    <div class="sm-card" style="border-color:rgba(245,158,11,0.3)">
+        <div><div class="sm-lbl">Moderate Risk (Warning)</div><div class="sm-val" id="sm-warn" style="color:var(--warning)">0</div></div>
+        <span style="font-size:1.2rem">⚠️</span>
+    </div>
+    <div class="sm-card" style="border-color:rgba(16,185,129,0.3)">
+        <div><div class="sm-lbl">Low Risk (Stable)</div><div class="sm-val" id="sm-ok" style="color:var(--success)">0</div></div>
+        <span style="font-size:1.2rem">🟢</span>
+    </div>
+    <div class="sm-card">
+        <div><div class="sm-lbl">Live Devices Stream</div><div class="sm-val" style="color:var(--accent)">6 Active</div></div>
+        <span style="font-size:1.2rem">📡</span>
+    </div>
+</div>
+
+<!-- ══ FILTER & SEARCH BAR ══ -->
+<div class="filter-search-bar">
+    <input type="text" id="patient-search" class="patient-search-input" placeholder="🔍 Search patient by name or bed..." oninput="filterPatients()">
+    <div class="filter-tabs">
+        <button class="filter-tab active" onclick="setRiskFilter('ALL', this)">ALL (6)</button>
+        <button class="filter-tab" onclick="setRiskFilter('CRITICAL', this)">HIGH RISK</button>
+        <button class="filter-tab" onclick="setRiskFilter('WARNING', this)">MODERATE RISK</button>
+        <button class="filter-tab" onclick="setRiskFilter('STABLE', this)">LOW RISK</button>
+    </div>
+</div>
 
 <!-- ══ DATA FLOW STRIP ══ -->
 <div class="flow-strip">
@@ -169,6 +207,39 @@
     <div class="modal-metrics" style="grid-template-columns: 1fr 1fr; gap: 8px;">
         <div class="mvc"><div class="mvc-val" style="font-size:1rem" id="m-sirs">—</div><div class="mvc-name">SIRS Score (Rule-based)</div></div>
         <div class="mvc"><div class="mvc-val" style="font-size:1rem" id="m-qsofa">—</div><div class="mvc-name">Partial qSOFA (0-2)</div><div style="font-size:0.55rem;color:#94a3b8">Partial — mentation unavailable</div></div>
+    </div>
+</div>
+</div>
+
+<!-- ══ ABOUT THIS ASSESSMENT MODAL ══ -->
+<div class="modal-overlay" id="about-model-modal">
+<div class="modal" style="max-width:520px">
+    <div class="modal-header">
+        <div class="modal-title">ℹ️ About This Risk Assessment</div>
+        <button class="modal-close" onclick="closeAboutModelModal()">✕</button>
+    </div>
+    <div class="modal-body" style="font-family:var(--mono);font-size:0.7rem;line-height:1.5">
+        <div style="margin-bottom:10px">
+            <strong style="color:var(--accent)">Model Architecture:</strong> XGBoost Classifier (Trained on PhysioNet 2019 Sepsis Cohort)
+        </div>
+        <div style="margin-bottom:10px">
+            <strong style="color:var(--accent)">Model Artifact Version:</strong> <code>v2_2026-08-12</code>
+        </div>
+        <div style="margin-bottom:10px">
+            <strong style="color:var(--accent)">Selected Decision Threshold:</strong> <code>0.27</code> (Selected on validation set for Sensitivity ≥ 0.85)
+        </div>
+        <div style="margin-bottom:10px">
+            <strong style="color:var(--accent)">Explainability Engine:</strong> SHAP (SHapley Additive exPlanations) TreeExplainer
+        </div>
+        <div style="margin-bottom:10px">
+            <strong style="color:var(--accent)">Rule-Based Clinical Baselines:</strong> 4-criterion SIRS Score & 2-criterion Partial qSOFA
+        </div>
+        <div style="margin-bottom:10px">
+            <strong style="color:var(--accent)">System Classification:</strong> AI-Assisted Clinical Decision-Support Research Prototype
+        </div>
+        <div class="global-medical-disclaimer" style="margin-top:12px;border-radius:4px">
+            SepsisGuard model outputs do not constitute a clinical diagnosis or treatment recommendation and must not replace independent clinical judgment.
+        </div>
     </div>
 </div>
 </div>

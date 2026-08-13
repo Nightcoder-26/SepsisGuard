@@ -105,17 +105,19 @@ def run_ml_pipeline(pid, vitals, generate_ai=False):
         if rr_val > 20:     explanation.append("Tachypnea")
         if inf_val > 0.5:   explanation.append("Elevated Infection Marker")
 
-        sirs = sum([
-            temp_val < 36 or temp_val > 38,
-            hr_val > 90,
-            rr_val > 20,
-            inf_val > 0.5,
-        ])
+        sirs_criteria = {
+            "temp_met": bool(temp_val < 36.0 or temp_val > 38.0),
+            "hr_met": bool(hr_val > 90.0),
+            "rr_met": bool(rr_val > 20.0),
+            "wbc_met": bool(inf_val > 0.5),
+        }
+        sirs = sum(sirs_criteria.values())
 
-        qsofa = sum([
-            rr_val >= 22,
-            bp_val <= 100,
-        ])
+        qsofa_criteria = {
+            "rr_met": bool(rr_val >= 22.0),
+            "sbp_met": bool(bp_val <= 100.0),
+        }
+        qsofa = sum(qsofa_criteria.values())
 
         shap_explanation = explain_prediction(model, explainer, feature_dict, feature_cols, top_k=5)
         alert_level = "CRITICAL" if prob >= 50.0 else ("WARNING" if prob >= 27.0 else "STABLE")
@@ -132,7 +134,9 @@ def run_ml_pipeline(pid, vitals, generate_ai=False):
             "message":          ri['msg'],
             "explanation":      explanation or ["All vital signs within normal ranges."],
             "sirs_score":       sirs,
+            "sirs_criteria":    sirs_criteria,
             "qsofa_score":      qsofa,
+            "qsofa_criteria":   qsofa_criteria,
             "qsofa_note":       "Partial — mentation unavailable",
             "shap_explanation": shap_explanation,
             "contributions":    shap_explanation,

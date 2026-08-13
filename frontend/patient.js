@@ -168,6 +168,7 @@ function renderAll(data) {
     // Metrics
     setText('m-sirs',  (data.sirs_score ?? '—') + '/4');
     setText('m-qsofa', (data.qsofa_score ?? '—') + '/2');
+    updateCriteriaChecklist(v, data);
 
     // Triggers
     const trig = document.getElementById('pt-triggers');
@@ -194,9 +195,33 @@ function renderAll(data) {
     }
 
     // Alert glow on body
-    document.body.style.boxShadow = level === 'CRITICAL'
-        ? 'inset 0 0 80px rgba(239,68,68,0.08)'
-        : 'none';
+function updateCriteriaChecklist(v, data) {
+    if (!v) return;
+    const sirsC = data.sirs_criteria || {
+        temp_met: v.Temperature < 36 || v.Temperature > 38,
+        hr_met: v.Heart_Rate > 90,
+        rr_met: v.Resp_Rate > 20,
+        wbc_met: v.Infection_Marker > 0.5
+    };
+    const qsofaC = data.qsofa_criteria || {
+        rr_met: v.Resp_Rate >= 22,
+        sbp_met: v.Blood_Pressure <= 100
+    };
+
+    const setChk = (id, met) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = 'chk-item ' + (met ? 'met' : 'unmet');
+        const bdg = el.querySelector('.chk-badge');
+        if (bdg) bdg.textContent = met ? '✓ Criterion Met' : '○ Not Met';
+    };
+
+    setChk('chk-temp', sirsC.temp_met);
+    setChk('chk-hr', sirsC.hr_met);
+    setChk('chk-rr', sirsC.rr_met);
+    setChk('chk-wbc', sirsC.wbc_met);
+    setChk('chk-qrr', qsofaC.rr_met);
+    setChk('chk-sbp', qsofaC.sbp_met);
 }
 
 // ─── Vital Card ─────────────────────────────────

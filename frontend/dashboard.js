@@ -133,6 +133,47 @@ function updateStatusBar() {
     document.getElementById('sv-crit').textContent = c;
     document.getElementById('sv-warn').textContent = w;
     document.getElementById('sv-ok').textContent   = s;
+
+    const smCrit = document.getElementById('sm-crit'); if (smCrit) smCrit.textContent = c;
+    const smWarn = document.getElementById('sm-warn'); if (smWarn) smWarn.textContent = w;
+    const smOk = document.getElementById('sm-ok'); if (smOk) smOk.textContent = s;
+    const smTotal = document.getElementById('sm-total'); if (smTotal) smTotal.textContent = Object.keys(PATIENTS).length;
+}
+
+let currentRiskFilter = 'ALL';
+
+function setRiskFilter(filter, el) {
+    currentRiskFilter = filter;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+    filterPatients();
+}
+
+function filterPatients() {
+    const q = (document.getElementById('patient-search')?.value || '').toLowerCase();
+    for (const pid of Object.keys(PATIENTS)) {
+        const card = document.getElementById('card-' + pid);
+        if (!card) continue;
+        const p = patients[pid];
+        const level = p?.alert_level || 'STABLE';
+        const name = (p?.name || '').toLowerCase();
+        const bed = (p?.bed || '').toLowerCase();
+
+        const matchesSearch = !q || name.includes(q) || bed.includes(q) || pid.toLowerCase().includes(q);
+        const matchesFilter = currentRiskFilter === 'ALL' || level === currentRiskFilter;
+
+        card.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
+    }
+}
+
+function openAboutModelModal() {
+    const modal = document.getElementById('about-model-modal');
+    if (modal) modal.classList.add('open');
+}
+
+function closeAboutModelModal() {
+    const modal = document.getElementById('about-model-modal');
+    if (modal) modal.classList.remove('open');
 }
 
 // ─── Clock ────────────────────────────────────────
