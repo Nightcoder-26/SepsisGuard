@@ -195,6 +195,12 @@ function renderAll(data) {
     }
 
     // Alert glow on body
+    document.body.style.boxShadow = level === 'CRITICAL'
+        ? 'inset 0 0 80px rgba(239,68,68,0.08)'
+        : 'none';
+}
+
+// ─── Criteria Checklist ─────────────────────────
 function updateCriteriaChecklist(v, data) {
     if (!v) return;
     const sirsC = data.sirs_criteria || {
