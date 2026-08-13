@@ -75,18 +75,22 @@
 
 <!-- ══ FILTER & SEARCH BAR ══ -->
 <div class="filter-search-bar">
-    <input type="text" id="patient-search" class="patient-search-input" placeholder="🔍 Search patient by name or bed..." oninput="filterPatients()">
-    <div class="filter-tabs">
-        <button class="filter-tab active" onclick="setRiskFilter('ALL', this)">ALL (6)</button>
-        <button class="filter-tab" onclick="setRiskFilter('CRITICAL', this)">HIGH RISK</button>
-        <button class="filter-tab" onclick="setRiskFilter('WARNING', this)">MODERATE RISK</button>
-        <button class="filter-tab" onclick="setRiskFilter('STABLE', this)">LOW RISK</button>
+    <div class="search-wrap">
+        <input type="text" id="patient-search" class="patient-search-input" placeholder="🔍 Search patient by name, ID, or bed…" oninput="filterPatients()">
+        <button id="search-clear-btn" class="search-clear-btn" onclick="clearSearch()" style="display:none" title="Clear search">✕</button>
     </div>
+    <div class="filter-tabs">
+        <button id="ftab-all"  class="filter-tab active" onclick="setRiskFilter('ALL', this)">ALL (6)</button>
+        <button id="ftab-high" class="filter-tab" onclick="setRiskFilter('CRITICAL', this)">HIGH RISK (0)</button>
+        <button id="ftab-mod"  class="filter-tab" onclick="setRiskFilter('WARNING', this)">MODERATE RISK (0)</button>
+        <button id="ftab-low"  class="filter-tab" onclick="setRiskFilter('STABLE', this)">LOW RISK (0)</button>
+    </div>
+    <button class="add-patient-btn" onclick="openAddPatientModal()" title="Add a new patient to monitoring">＋ Add Patient</button>
 </div>
 
 <!-- ══ DATA FLOW STRIP ══ -->
 <div class="flow-strip">
-    <div class="fn"><div class="fp"></div>ICU DEVICES [6]</div>
+    <div class="fn"><div class="fp"></div>ICU DEVICES [<span id="icu-device-count">6 Active</span>]</div>
     <div class="fa"></div>
     <div class="fn"><div class="fp"></div>TELEMETRY HUB</div>
     <div class="fa"></div>
@@ -119,6 +123,13 @@
     <!-- CENTER: PATIENT GRID -->
     <main class="center-panel">
         <div class="patient-grid" id="patient-grid"></div>
+        <!-- Empty state shown when search/filter yields no results -->
+        <div id="patient-empty-state" class="patient-empty-state" style="display:none">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-title">No patients found</div>
+            <div class="empty-sub">Try a different patient name, ID, or risk filter.</div>
+            <button class="btn-clear-empty" onclick="clearSearch(); setRiskFilter('ALL', document.getElementById('ftab-all'))">Clear Search &amp; Filters</button>
+        </div>
     </main>
 
     <!-- RIGHT SIDEBAR -->
@@ -208,6 +219,40 @@
         <div class="mvc"><div class="mvc-val" style="font-size:1rem" id="m-sirs">—</div><div class="mvc-name">SIRS Score (Rule-based)</div></div>
         <div class="mvc"><div class="mvc-val" style="font-size:1rem" id="m-qsofa">—</div><div class="mvc-name">Partial qSOFA (0-2)</div><div style="font-size:0.55rem;color:#94a3b8">Partial — mentation unavailable</div></div>
     </div>
+
+    <!-- PATIENT WORKFLOW STATUS -->
+    <div class="msec" style="margin-top:12px">Patient Workflow Status
+        <span style="font-size:0.6rem;color:#64748b;font-weight:400;margin-left:6px">(separate from ML risk)</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="m-workflow-status" class="workflow-status-select" onchange="setPatientStatus(modalPid, this.value)">
+            <option value="Needs Review">Needs Review</option>
+            <option value="Under Observation">Under Observation</option>
+            <option value="Reviewed">Reviewed</option>
+        </select>
+        <button class="ai-btn" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:#10b981" onclick="openEditPatientModal(modalPid)">✏️ Edit Patient</button>
+        <button class="ai-btn" style="background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.3);color:#38bdf8" onclick="openVitalsModal(modalPid)">📋 Update Vitals</button>
+        <button class="ai-btn" style="background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.3);color:#c084fc" onclick="exportAssessment(modalPid)">📄 Export Assessment</button>
+    </div>
+
+    <!-- ASSESSMENT HISTORY -->
+    <div class="msec" style="margin-top:12px">Assessment History
+        <span style="font-size:0.6rem;color:#64748b;font-weight:400;margin-left:6px">(this session only)</span>
+    </div>
+    <div id="m-assessment-history" class="assessment-history-list">
+        <div class="ah-empty">No assessments recorded this session.</div>
+    </div>
+
+    <!-- CLINICIAN NOTES -->
+    <div class="msec" style="margin-top:12px">Clinician Notes</div>
+    <div class="ai-disclaimer-badge">Clinician-entered observations only. AI must not create clinical orders.</div>
+    <div id="m-notes-list" class="notes-list">
+        <div class="ah-empty">No notes recorded.</div>
+    </div>
+    <div class="note-input-row">
+        <textarea id="m-note-input" class="note-textarea" placeholder="Enter clinical observation…" rows="2"></textarea>
+        <button id="m-note-save-btn" class="run-assessment-btn" style="margin-top:6px;width:100%" onclick="saveNote(modalPid)">💾 Save Note</button>
+    </div>
 </div>
 </div>
 
@@ -240,6 +285,157 @@
         <div class="global-medical-disclaimer" style="margin-top:12px;border-radius:4px">
             SepsisGuard model outputs do not constitute a clinical diagnosis or treatment recommendation and must not replace independent clinical judgment.
         </div>
+    </div>
+</div>
+</div>
+
+<!-- ══ ADD PATIENT MODAL ══ -->
+<div id="add-patient-modal" class="modal-overlay">
+<div class="modal" style="max-width:480px">
+    <div class="modal-header">
+        <div class="modal-title">➕ Add Patient</div>
+        <button class="modal-close" onclick="closeAddPatientModal()">✕</button>
+    </div>
+    <div class="modal-body">
+        <div class="ai-disclaimer-badge" style="margin-bottom:10px">Research/demo system. Minimise personally identifiable information.</div>
+        <div class="form-field">
+            <label class="form-label">Patient ID <span class="req">*</span></label>
+            <input id="ap-pid" class="form-input" type="text" placeholder="e.g. P007" maxlength="16" autocomplete="off"/>
+            <div class="form-hint">2–16 alphanumeric characters or dashes.</div>
+        </div>
+        <div class="form-field">
+            <label class="form-label">Full Name <span class="req">*</span></label>
+            <input id="ap-name" class="form-input" type="text" placeholder="e.g. Jane Smith" maxlength="80"/>
+        </div>
+        <div class="form-row">
+            <div class="form-field">
+                <label class="form-label">Age <span class="req">*</span></label>
+                <input id="ap-age" class="form-input" type="number" min="0" max="120" placeholder="e.g. 65"/>
+            </div>
+            <div class="form-field">
+                <label class="form-label">Sex</label>
+                <select id="ap-gender" class="form-input">
+                    <option value="Unknown">Unknown</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-field">
+                <label class="form-label">Bed / Care Location</label>
+                <input id="ap-bed" class="form-input" type="text" placeholder="e.g. ICU-07" maxlength="20"/>
+            </div>
+            <div class="form-field">
+                <label class="form-label">Room</label>
+                <input id="ap-room" class="form-input" type="text" placeholder="e.g. D1" maxlength="10"/>
+            </div>
+        </div>
+        <div id="ap-error" class="form-error"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeAddPatientModal()">Cancel</button>
+            <button id="ap-submit-btn" class="btn-primary" onclick="submitAddPatient()">✓ Create Patient</button>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ══ EDIT PATIENT MODAL ══ -->
+<div id="edit-patient-modal" class="modal-overlay">
+<div class="modal" style="max-width:480px">
+    <div class="modal-header">
+        <div class="modal-title">✏️ Edit Patient — <span id="ep-pid-display"></span></div>
+        <button class="modal-close" onclick="closeEditPatientModal()">✕</button>
+    </div>
+    <div class="modal-body">
+        <div class="ai-disclaimer-badge" style="margin-bottom:10px">Only metadata fields can be edited. Assessment history is preserved.</div>
+        <div class="form-field">
+            <label class="form-label">Full Name <span class="req">*</span></label>
+            <input id="ep-name" class="form-input" type="text" maxlength="80"/>
+        </div>
+        <div class="form-row">
+            <div class="form-field">
+                <label class="form-label">Age <span class="req">*</span></label>
+                <input id="ep-age" class="form-input" type="number" min="0" max="120"/>
+            </div>
+            <div class="form-field">
+                <label class="form-label">Sex</label>
+                <select id="ep-gender" class="form-input">
+                    <option value="Unknown">Unknown</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-field">
+                <label class="form-label">Bed / Care Location</label>
+                <input id="ep-bed" class="form-input" type="text" maxlength="20"/>
+            </div>
+            <div class="form-field">
+                <label class="form-label">Room</label>
+                <input id="ep-room" class="form-input" type="text" maxlength="10"/>
+            </div>
+        </div>
+        <div id="ep-error" class="form-error"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeEditPatientModal()">Cancel</button>
+            <button id="ep-submit-btn" class="btn-primary" onclick="submitEditPatient()">✓ Save Changes</button>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ══ UPDATE VITALS MODAL ══ -->
+<div id="vitals-modal" class="modal-overlay">
+<div class="modal" style="max-width:520px">
+    <div class="modal-header">
+        <div class="modal-title">📋 Update Vitals + Run Assessment</div>
+        <button class="modal-close" onclick="closeVitalsModal()">✕</button>
+    </div>
+    <div class="modal-body">
+        <div class="vm-patient-id" id="vm-pid-display"></div>
+        <div class="ai-disclaimer-badge" style="margin-bottom:10px">Enter current clinical measurements. Assessment will run automatically on save.</div>
+        <div class="vitals-form-grid">
+            <div class="vf-field">
+                <label class="form-label">Heart Rate <span class="vf-unit">bpm</span></label>
+                <input id="vm-hr" class="form-input" type="number" min="20" max="300" step="1"/>
+                <div class="form-hint">Normal: 60–100</div>
+            </div>
+            <div class="vf-field">
+                <label class="form-label">Temperature <span class="vf-unit">°C</span></label>
+                <input id="vm-temp" class="form-input" type="number" min="30" max="45" step="0.1"/>
+                <div class="form-hint">Normal: 36.5–37.5</div>
+            </div>
+            <div class="vf-field">
+                <label class="form-label">Systolic BP <span class="vf-unit">mmHg</span></label>
+                <input id="vm-bp" class="form-input" type="number" min="30" max="250" step="1"/>
+                <div class="form-hint">Normal: 90–120</div>
+            </div>
+            <div class="vf-field">
+                <label class="form-label">Respiratory Rate <span class="vf-unit">/min</span></label>
+                <input id="vm-rr" class="form-input" type="number" min="4" max="70" step="1"/>
+                <div class="form-hint">Normal: 12–20</div>
+            </div>
+            <div class="vf-field">
+                <label class="form-label">SpO₂ <span class="vf-unit">%</span></label>
+                <input id="vm-spo2" class="form-input" type="number" min="50" max="100" step="0.1"/>
+                <div class="form-hint">Normal: 95–100</div>
+            </div>
+            <div class="vf-field">
+                <label class="form-label">Infection Marker <span class="vf-unit">0–1</span></label>
+                <input id="vm-inf" class="form-input" type="number" min="0" max="1" step="0.001"/>
+                <div class="form-hint">Elevated: &gt; 0.5</div>
+            </div>
+        </div>
+        <div id="vm-error" class="form-error"></div>
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeVitalsModal()">Cancel</button>
+            <button id="vm-submit-btn" class="btn-primary" onclick="submitVitals()">⚡ Save Vitals + Run Assessment</button>
+        </div>
+        <div id="vm-result" style="display:none;margin-top:12px"></div>
     </div>
 </div>
 </div>

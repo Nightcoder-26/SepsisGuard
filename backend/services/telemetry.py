@@ -29,6 +29,9 @@ PATIENTS = {
 
 patient_state = {}
 patient_timeline = {pid: [] for pid in PATIENTS}
+patient_assessments = {pid: [] for pid in PATIENTS}   # Assessment history per patient
+patient_notes = {pid: [] for pid in PATIENTS}         # Clinician notes per patient
+patient_workflow_status = {pid: "Needs Review" for pid in PATIENTS}  # Workflow status
 telemetry_running = False
 _prev_alert = {pid: None for pid in PATIENTS}
 
@@ -67,6 +70,7 @@ def _init_state(pid):
         "anomaly": False,
         "deteriorating": False,
         "last_updated": datetime.now().isoformat(),
+        "workflow_status": "Needs Review",
     }
 
 for pid in PATIENTS:
@@ -192,3 +196,112 @@ def start_telemetry_thread(socketio_instance):
     if not telemetry_running:
         telemetry_running = True
         threading.Thread(target=telemetry_loop, args=(socketio_instance,), daemon=True).start()
+
+
+# ─── Patient CRUD Helpers ────────────────────────────────────────────────────
+
+def add_patient(pid, info):
+    """
+    Register a new patient in all in-memory stores and initialise their state.
+    `info` must contain: name, age, gender, bed, room, base_risk (optional, defaults 20).
+    Returns (True, state) on success or (False, error_message) if pid already exists.
+    """
+    if pid in PATIENTS:
+        return False, f"Patient ID '{pid}' already exists."
+
+    # Persist to PATIENTS registry
+    PATIENTS[pid] = {
+        "name":      info["name"],
+        "age":       int(info["age"]),
+        "bed":       info.get("bed", ""),
+        "room":      info.get("room", ""),
+        "gender":    info.get("gender", "Unknown"),
+        "base_risk": int(info.get("base_risk", 20)),
+    }
+
+    # Initialise all per-patient stores
+    patient_timeline[pid]          = []
+    patient_assessments[pid]       = []
+    patient_notes[pid]             = []
+    patient_workflow_status[pid]   = "Needs Review"
+    _prev_alert[pid]               = None
+
+    state = _init_state(pid)
+    patient_state[pid] = state
+    logger.info(f"New patient registered: {pid} ({info['name']})")
+    return True, state
+
+
+def update_patient(pid, updates):
+    """
+    Update editable metadata fields for an existing patient.
+    Allowed fields: name, age, gender, bed, room.
+    Returns (True, updated_state) or (False, error_message).
+    """
+    if pid not in PATIENTS:
+        return False, f"Patient '{pid}' not found."
+    allowed = {"name", "age", "gender", "bed", "room"}
+    for k, v in updates.items():
+        if k in allowed:
+            PATIENTS[pid][k] = int(v) if k == "age" else v
+            if pid in patient_state:
+                patient_state[pid][k] = int(v) if k == "age" else v
+    logger.info(f"Patient metadata updated: {pid}")
+    return True, patient_state.get(pid, {})
+
+
+def record_assessment(pid, result, vitals_snapshot):
+    """
+    Append a completed assessment record to the patient's assessment history.
+    Each record is independent and immutable — previous records are never overwritten.
+    """
+    if pid not in patient_assessments:
+        patient_assessments[pid] = []
+    record = {
+        "timestamp":     datetime.now().isoformat(),
+        "risk_score":    result.get("risk_score"),
+        "risk_level":    result.get("risk_level"),
+        "alert_level":   result.get("alert_level"),
+        "sirs_score":    result.get("sirs_score"),
+        "qsofa_score":   result.get("qsofa_score"),
+        "ai_synthesis":  result.get("ai_synthesis", ""),
+        "explanation":   result.get("explanation", []),
+        "shap_explanation": result.get("shap_explanation", {}),
+        "vitals":        vitals_snapshot,
+    }
+    patient_assessments[pid].append(record)
+    if len(patient_assessments[pid]) > 50:   # cap history at 50 per patient
+        patient_assessments[pid].pop(0)
+    return record
+
+
+def add_note(pid, text, author="Clinician"):
+    """
+    Append a clinician note for a patient. Notes are append-only.
+    """
+    if pid not in patient_notes:
+        patient_notes[pid] = []
+    note = {
+        "timestamp": datetime.now().isoformat(),
+        "author":    author,
+        "text":      text.strip(),
+    }
+    patient_notes[pid].append(note)
+    if len(patient_notes[pid]) > 100:
+        patient_notes[pid].pop(0)
+    return note
+
+
+def set_workflow_status(pid, status):
+    """
+    Set the workflow review status for a patient.
+    Valid values: 'Needs Review', 'Under Observation', 'Reviewed'.
+    This is distinct from the ML risk level.
+    """
+    valid = {"Needs Review", "Under Observation", "Reviewed"}
+    if status not in valid:
+        return False, f"Invalid status. Must be one of: {', '.join(valid)}"
+    patient_workflow_status[pid] = status
+    if pid in patient_state:
+        patient_state[pid]["workflow_status"] = status
+    return True, status

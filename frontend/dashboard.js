@@ -25,6 +25,8 @@ let   modalPid      = null;
 let   modalEcg      = null;
 let   modalChart    = null;
 let   selectedPid   = null; // for explainability panel
+let   editPid       = null; // for edit patient modal
+let   vitalsPid     = null; // for update vitals modal
 
 // ─── Socket.IO ────────────────────────────────────
 const socket = io(SERVER, {
@@ -130,14 +132,29 @@ function updateStatusBar() {
         const l = patients[pid]?.alert_level;
         if (l === 'CRITICAL') c++; else if (l === 'WARNING') w++; else s++;
     }
+    const total = Object.keys(patients).length;
     document.getElementById('sv-crit').textContent = c;
     document.getElementById('sv-warn').textContent = w;
     document.getElementById('sv-ok').textContent   = s;
 
-    const smCrit = document.getElementById('sm-crit'); if (smCrit) smCrit.textContent = c;
-    const smWarn = document.getElementById('sm-warn'); if (smWarn) smWarn.textContent = w;
-    const smOk = document.getElementById('sm-ok'); if (smOk) smOk.textContent = s;
-    const smTotal = document.getElementById('sm-total'); if (smTotal) smTotal.textContent = Object.keys(PATIENTS).length;
+    const smCrit  = document.getElementById('sm-crit');  if (smCrit)  smCrit.textContent  = c;
+    const smWarn  = document.getElementById('sm-warn');  if (smWarn)  smWarn.textContent  = w;
+    const smOk    = document.getElementById('sm-ok');    if (smOk)    smOk.textContent    = s;
+    const smTotal = document.getElementById('sm-total'); if (smTotal) smTotal.textContent = total;
+
+    // Dynamic ICU devices count
+    const devEl = document.getElementById('icu-device-count');
+    if (devEl) devEl.textContent = total + ' Active';
+    // Update filter tab counts
+    updateFilterCounts(c, w, s, total);
+}
+
+function updateFilterCounts(crit, warn, stable, total) {
+    const el = (id) => document.getElementById(id);
+    if (el('ftab-all'))  el('ftab-all').textContent  = 'ALL (' + total + ')';
+    if (el('ftab-high')) el('ftab-high').textContent = 'HIGH RISK (' + crit + ')';
+    if (el('ftab-mod'))  el('ftab-mod').textContent  = 'MODERATE RISK (' + warn + ')';
+    if (el('ftab-low'))  el('ftab-low').textContent  = 'LOW RISK (' + stable + ')';
 }
 
 let currentRiskFilter = 'ALL';
@@ -150,20 +167,38 @@ function setRiskFilter(filter, el) {
 }
 
 function filterPatients() {
-    const q = (document.getElementById('patient-search')?.value || '').toLowerCase();
-    for (const pid of Object.keys(PATIENTS)) {
+    const q = (document.getElementById('patient-search')?.value || '').toLowerCase().trim();
+    let visibleCount = 0;
+
+    for (const pid of Object.keys(patients)) {
         const card = document.getElementById('card-' + pid);
         if (!card) continue;
         const p = patients[pid];
         const level = p?.alert_level || 'STABLE';
-        const name = (p?.name || '').toLowerCase();
-        const bed = (p?.bed || '').toLowerCase();
+        const name  = (p?.name || '').toLowerCase();
+        const bed   = (p?.bed  || '').toLowerCase();
 
         const matchesSearch = !q || name.includes(q) || bed.includes(q) || pid.toLowerCase().includes(q);
         const matchesFilter = currentRiskFilter === 'ALL' || level === currentRiskFilter;
+        const show = matchesSearch && matchesFilter;
 
-        card.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
+        card.style.display = show ? 'flex' : 'none';
+        if (show) visibleCount++;
     }
+
+    // Empty state
+    const empty = document.getElementById('patient-empty-state');
+    if (empty) empty.style.display = visibleCount === 0 ? 'flex' : 'none';
+
+    // Clear button visibility
+    const clrBtn = document.getElementById('search-clear-btn');
+    if (clrBtn) clrBtn.style.display = q ? 'flex' : 'none';
+}
+
+function clearSearch() {
+    const inp = document.getElementById('patient-search');
+    if (inp) { inp.value = ''; inp.focus(); }
+    filterPatients();
 }
 
 function openAboutModelModal() {
@@ -808,4 +843,466 @@ function removeCopilotThinking() {
 
 document.getElementById('cop-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendCopilot(); });
 
+// ─── ADD PATIENT MODAL ───────────────────────────────────────────────────────
+function openAddPatientModal() {
+    const modal = document.getElementById('add-patient-modal');
+    if (modal) {
+        modal.classList.add('open');
+        document.getElementById('ap-pid').value = '';
+        document.getElementById('ap-name').value = '';
+        document.getElementById('ap-age').value = '';
+        document.getElementById('ap-gender').value = 'Unknown';
+        document.getElementById('ap-bed').value = '';
+        document.getElementById('ap-room').value = '';
+        document.getElementById('ap-error').textContent = '';
+        document.getElementById('ap-pid').focus();
+    }
+}
+function closeAddPatientModal() {
+    const modal = document.getElementById('add-patient-modal');
+    if (modal) modal.classList.remove('open');
+}
+async function submitAddPatient() {
+    const errEl = document.getElementById('ap-error');
+    const btn   = document.getElementById('ap-submit-btn');
+    const pid   = document.getElementById('ap-pid').value.trim().toUpperCase();
+    const name  = document.getElementById('ap-name').value.trim();
+    const age   = document.getElementById('ap-age').value.trim();
+    const gender = document.getElementById('ap-gender').value;
+    const bed   = document.getElementById('ap-bed').value.trim();
+    const room  = document.getElementById('ap-room').value.trim();
+
+    errEl.textContent = '';
+
+    if (!pid)  { errEl.textContent = 'Patient ID is required.'; return; }
+    if (!name) { errEl.textContent = 'Patient name is required.'; return; }
+    if (!age || isNaN(age) || +age < 0 || +age > 120) { errEl.textContent = 'Valid age (0–120) is required.'; return; }
+
+    btn.disabled = true; btn.textContent = '⏳ Creating…';
+    try {
+        const res = await fetch(SERVER + '/patients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+            body: JSON.stringify({ pid, name, age: +age, gender, bed, room })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            errEl.textContent = data.message || (data.details ? JSON.stringify(data.details) : 'Failed to create patient.');
+            return;
+        }
+        closeAddPatientModal();
+        // Add new patient to local state immediately
+        patients[pid] = data.patient;
+        if (!document.getElementById('card-' + pid)) createCard(pid, data.patient);
+        updateCard(pid, data.patient);
+        filterPatients();
+        updateStatusBar();
+        showNotification(`✅ Patient ${pid} created successfully.`, 'success');
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+    } finally {
+        btn.disabled = false; btn.textContent = '✓ Create Patient';
+    }
+}
+
+// ─── EDIT PATIENT MODAL ──────────────────────────────────────────────────────
+function openEditPatientModal(pid) {
+    editPid = pid;
+    const p = patients[pid];
+    if (!p) return;
+    const modal = document.getElementById('edit-patient-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    document.getElementById('ep-pid-display').textContent = pid;
+    document.getElementById('ep-name').value   = p.name   || '';
+    document.getElementById('ep-age').value    = p.age    || '';
+    document.getElementById('ep-gender').value = p.gender || 'Unknown';
+    document.getElementById('ep-bed').value    = p.bed    || '';
+    document.getElementById('ep-room').value   = p.room   || '';
+    document.getElementById('ep-error').textContent = '';
+}
+function closeEditPatientModal() {
+    const modal = document.getElementById('edit-patient-modal');
+    if (modal) modal.classList.remove('open');
+    editPid = null;
+}
+async function submitEditPatient() {
+    const errEl = document.getElementById('ep-error');
+    const btn   = document.getElementById('ep-submit-btn');
+    const pid   = editPid;
+    if (!pid) return;
+
+    const name   = document.getElementById('ep-name').value.trim();
+    const age    = document.getElementById('ep-age').value.trim();
+    const gender = document.getElementById('ep-gender').value;
+    const bed    = document.getElementById('ep-bed').value.trim();
+    const room   = document.getElementById('ep-room').value.trim();
+
+    errEl.textContent = '';
+    if (!name) { errEl.textContent = 'Patient name is required.'; return; }
+    if (!age || isNaN(age) || +age < 0 || +age > 120) { errEl.textContent = 'Valid age (0–120) is required.'; return; }
+
+    btn.disabled = true; btn.textContent = '⏳ Saving…';
+    try {
+        const res = await fetch(SERVER + '/patients/' + pid, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+            body: JSON.stringify({ name, age: +age, gender, bed, room })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            errEl.textContent = data.message || 'Failed to update patient.';
+            return;
+        }
+        // Update local state
+        patients[pid] = { ...patients[pid], name, age: +age, gender, bed, room };
+        updateCard(pid, patients[pid]);
+        closeEditPatientModal();
+        showNotification(`✅ Patient ${pid} updated.`, 'success');
+        // If modal is open for this patient, refresh sub-header
+        if (modalPid === pid) {
+            document.getElementById('m-name').textContent = name;
+            document.getElementById('m-sub').textContent = (bed || '—') + ' · Age ' + age + ' · Room ' + (room || '—');
+        }
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+    } finally {
+        btn.disabled = false; btn.textContent = '✓ Save Changes';
+    }
+}
+
+// ─── UPDATE VITALS MODAL ─────────────────────────────────────────────────────
+function openVitalsModal(pid) {
+    vitalsPid = pid;
+    const p = patients[pid];
+    if (!p) return;
+    const modal = document.getElementById('vitals-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    document.getElementById('vm-pid-display').textContent = pid + ' — ' + (p.name || '');
+    document.getElementById('vm-hr').value   = Math.round(p.Heart_Rate   || p.vitals?.Heart_Rate   || 80);
+    document.getElementById('vm-temp').value = (p.Temperature  || p.vitals?.Temperature  || 37.0).toFixed(1);
+    document.getElementById('vm-bp').value   = Math.round(p.Blood_Pressure || p.vitals?.Blood_Pressure || 120);
+    document.getElementById('vm-rr').value   = Math.round(p.Resp_Rate    || p.vitals?.Resp_Rate    || 16);
+    document.getElementById('vm-spo2').value = (p.Oxygen_Level || p.vitals?.Oxygen_Level || 98.0).toFixed(1);
+    document.getElementById('vm-inf').value  = (p.Infection_Marker || p.vitals?.Infection_Marker || 0.5).toFixed(3);
+    document.getElementById('vm-error').textContent = '';
+    document.getElementById('vm-result').style.display = 'none';
+}
+function closeVitalsModal() {
+    const modal = document.getElementById('vitals-modal');
+    if (modal) modal.classList.remove('open');
+    vitalsPid = null;
+}
+async function submitVitals() {
+    const errEl  = document.getElementById('vm-error');
+    const resEl  = document.getElementById('vm-result');
+    const btn    = document.getElementById('vm-submit-btn');
+    const pid    = vitalsPid;
+    if (!pid) return;
+
+    const hr   = parseFloat(document.getElementById('vm-hr').value);
+    const temp = parseFloat(document.getElementById('vm-temp').value);
+    const bp   = parseFloat(document.getElementById('vm-bp').value);
+    const rr   = parseFloat(document.getElementById('vm-rr').value);
+    const spo2 = parseFloat(document.getElementById('vm-spo2').value);
+    const inf  = parseFloat(document.getElementById('vm-inf').value);
+    const age  = patients[pid]?.age || 65;
+
+    errEl.textContent = '';
+
+    const rangeChecks = [
+        [hr,   20, 300, 'Heart Rate'],
+        [temp, 30, 45,  'Temperature'],
+        [bp,   30, 250, 'Blood Pressure'],
+        [rr,    4, 70,  'Respiratory Rate'],
+        [spo2, 50, 100, 'SpO₂'],
+        [inf,   0, 1,   'Infection Marker']
+    ];
+    for (const [val, lo, hi, label] of rangeChecks) {
+        if (isNaN(val) || val < lo || val > hi) {
+            errEl.textContent = `${label}: value out of valid range (${lo}–${hi}).`;
+            return;
+        }
+    }
+
+    btn.disabled = true; btn.textContent = '⏳ Running Assessment…';
+    try {
+        const res = await fetch(SERVER + '/patients/' + pid + '/vitals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+            body: JSON.stringify({
+                Heart_Rate: hr, Temperature: temp, Blood_Pressure: bp,
+                Resp_Rate: rr, Oxygen_Level: spo2, Infection_Marker: inf, Age: age
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            errEl.textContent = data.message || 'Vitals update failed.';
+            return;
+        }
+        // Update local state
+        patients[pid] = { ...patients[pid], ...data.result,
+            Heart_Rate: hr, Temperature: temp, Blood_Pressure: bp,
+            Resp_Rate: rr, Oxygen_Level: spo2, Infection_Marker: inf };
+        updateCard(pid, patients[pid]);
+        updateStatusBar();
+        if (modalPid === pid) updateModal(patients[pid]);
+
+        // Show result summary inside vitals modal
+        const r = data.result;
+        resEl.style.display = 'block';
+        resEl.innerHTML = `
+            <div class="vm-result-box">
+                <div class="vm-result-risk" style="color:${r.risk_color}">${r.risk_score?.toFixed(0)}% — ${r.risk_level}</div>
+                <div class="vm-result-row"><span>SIRS</span><span>${r.sirs_score ?? '—'}/4</span></div>
+                <div class="vm-result-row"><span>Partial qSOFA</span><span>${r.qsofa_score ?? '—'}/2</span></div>
+                <div class="vm-result-synthesis">${r.ai_synthesis || ''}</div>
+                <div class="vm-result-disc">AI-generated — not a clinical order. Independent clinical judgment required.</div>
+            </div>`;
+
+        // Add to assessment history UI if modal open
+        if (modalPid === pid) loadAssessmentHistory(pid);
+        showNotification(`✅ Assessment complete: ${r.risk_score?.toFixed(0)}% (${r.risk_level})`, 'success');
+    } catch(e) {
+        errEl.textContent = 'Network error. Please try again.';
+    } finally {
+        btn.disabled = false; btn.textContent = '⚡ Save Vitals + Run Assessment';
+    }
+}
+
+// ─── ASSESSMENT HISTORY ──────────────────────────────────────────────────────
+async function loadAssessmentHistory(pid) {
+    const container = document.getElementById('m-assessment-history');
+    if (!container) return;
+    container.innerHTML = '<div class="ah-loading">Loading history…</div>';
+    try {
+        const res = await fetch(SERVER + '/patients/' + pid + '/assessments', {
+            headers: { 'X-API-Key': API_KEY }
+        });
+        const data = await res.json();
+        if (!res.ok || !data.assessments) {
+            container.innerHTML = '<div class="ah-empty">No assessments recorded this session.</div>';
+            return;
+        }
+        if (data.assessments.length === 0) {
+            container.innerHTML = '<div class="ah-empty">No assessments recorded this session. Run an assessment to begin.</div>';
+            return;
+        }
+        container.innerHTML = '';
+        data.assessments.forEach((a, i) => {
+            const ts = new Date(a.timestamp);
+            const timeStr = ts.toLocaleDateString() + ' · ' + ts.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+            const color = a.alert_level === 'CRITICAL' ? '#ef4444' : a.alert_level === 'WARNING' ? '#f59e0b' : '#10b981';
+            const div = document.createElement('div');
+            div.className = 'ah-item';
+            div.innerHTML = `
+                <div class="ah-item-header" onclick="toggleAssessmentDetail(this)">
+                    <div>
+                        <span class="ah-time">${timeStr}</span>
+                        <span class="ah-badge" style="color:${color};border-color:${color}44">${a.alert_level} · ${a.risk_score?.toFixed(0)}%</span>
+                        <span class="ah-sirs">SIRS ${a.sirs_score ?? '—'}/4 · qSOFA ${a.qsofa_score ?? '—'}/2</span>
+                    </div>
+                    <span class="ah-toggle">▼</span>
+                </div>
+                <div class="ah-detail" style="display:none">
+                    <div class="ah-synthesis">${escapeHtml(a.ai_synthesis || 'No AI synthesis recorded.')}</div>
+                    <div class="ah-triggers">${(a.explanation || []).map(e => `<span class="trigger-tag">${escapeHtml(e)}</span>`).join('')}</div>
+                    ${a.vitals ? `<div class="ah-vitals">HR ${a.vitals.Heart_Rate?.toFixed(0) ?? '—'} · Temp ${a.vitals.Temperature?.toFixed(1) ?? '—'}°C · SysBP ${a.vitals.Blood_Pressure?.toFixed(0) ?? '—'} · RR ${a.vitals.Resp_Rate?.toFixed(0) ?? '—'} · SpO₂ ${a.vitals.Oxygen_Level?.toFixed(1) ?? '—'}%</div>` : ''}
+                </div>`;
+            container.appendChild(div);
+        });
+    } catch(e) {
+        container.innerHTML = '<div class="ah-empty">Could not load assessment history.</div>';
+    }
+}
+
+function toggleAssessmentDetail(headerEl) {
+    const detail = headerEl.nextElementSibling;
+    const toggle = headerEl.querySelector('.ah-toggle');
+    if (!detail) return;
+    const open = detail.style.display !== 'none';
+    detail.style.display = open ? 'none' : 'block';
+    if (toggle) toggle.textContent = open ? '▼' : '▲';
+}
+
+// ─── CLINICIAN NOTES ─────────────────────────────────────────────────────────
+async function loadNotes(pid) {
+    const container = document.getElementById('m-notes-list');
+    if (!container) return;
+    container.innerHTML = '<div class="ah-loading">Loading notes…</div>';
+    try {
+        const res = await fetch(SERVER + '/patients/' + pid + '/notes', {
+            headers: { 'X-API-Key': API_KEY }
+        });
+        const data = await res.json();
+        if (!res.ok || !data.notes || data.notes.length === 0) {
+            container.innerHTML = '<div class="ah-empty">No notes recorded.</div>';
+            return;
+        }
+        container.innerHTML = '';
+        data.notes.forEach(n => {
+            const ts = new Date(n.timestamp);
+            const timeStr = ts.toLocaleDateString() + ' · ' + ts.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+            const div = document.createElement('div');
+            div.className = 'note-item';
+            div.innerHTML = `<div class="note-meta">${timeStr} · ${escapeHtml(n.author)}</div><div class="note-text">${escapeHtml(n.text)}</div>`;
+            container.appendChild(div);
+        });
+    } catch(e) {
+        container.innerHTML = '<div class="ah-empty">Could not load notes.</div>';
+    }
+}
+
+async function saveNote(pid) {
+    const inp = document.getElementById('m-note-input');
+    const btn = document.getElementById('m-note-save-btn');
+    if (!inp || !pid) return;
+    const text = inp.value.trim();
+    if (!text) { showNotification('⚠️ Note text cannot be empty.', 'warning'); return; }
+
+    btn.disabled = true; btn.textContent = '⏳ Saving…';
+    try {
+        const res = await fetch(SERVER + '/patients/' + pid + '/notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+            body: JSON.stringify({ text })
+        });
+        if (res.ok) {
+            inp.value = '';
+            loadNotes(pid);
+            showNotification('✅ Note saved.', 'success');
+        } else {
+            showNotification('⚠️ Failed to save note.', 'warning');
+        }
+    } catch(e) {
+        showNotification('⚠️ Network error.', 'warning');
+    } finally {
+        btn.disabled = false; btn.textContent = '💾 Save Note';
+    }
+}
+
+// ─── PATIENT STATUS ──────────────────────────────────────────────────────────
+async function setPatientStatus(pid, status) {
+    try {
+        const res = await fetch(SERVER + '/patients/' + pid + '/status', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+            body: JSON.stringify({ status })
+        });
+        if (res.ok) {
+            if (patients[pid]) patients[pid].workflow_status = status;
+            updateStatusBadge(pid, status);
+            showNotification(`✅ Status: ${status}`, 'success');
+        }
+    } catch(e) { /* silent */ }
+}
+
+function updateStatusBadge(pid, status) {
+    const el = document.getElementById('ws-badge-' + pid);
+    if (!el) return;
+    const colors = { 'Needs Review': '#f59e0b', 'Under Observation': '#38bdf8', 'Reviewed': '#10b981' };
+    el.textContent = status;
+    el.style.color = colors[status] || '#94a3b8';
+    el.style.borderColor = (colors[status] || '#94a3b8') + '44';
+    // Also update in modal if open
+    const mEl = document.getElementById('m-workflow-status');
+    if (mEl && modalPid === pid) {
+        mEl.value = status;
+    }
+}
+
+// ─── NOTIFICATION TOAST ──────────────────────────────────────────────────────
+function showNotification(message, type = 'success') {
+    const overlay = document.getElementById('alert-overlay');
+    if (!overlay) return;
+    const div = document.createElement('div');
+    div.className = 'notif-toast notif-' + type;
+    div.textContent = message;
+    overlay.prepend(div);
+    setTimeout(() => div.remove(), 4000);
+}
+
+// ─── MODAL OPEN HOOK — load history + notes on open ─────────────────────────
+const _origOpenModal = openModal;
+function openModal(pid) {
+    _origOpenModal(pid);
+    // Load contextual data
+    loadAssessmentHistory(pid);
+    loadNotes(pid);
+    // Populate workflow status dropdown
+    const mEl = document.getElementById('m-workflow-status');
+    if (mEl) mEl.value = patients[pid]?.workflow_status || 'Needs Review';
+}
+
+// ─── EXPORT ASSESSMENT ───────────────────────────────────────────────────────
+function exportAssessment(pid) {
+    const p = patients[pid];
+    if (!p) return;
+    const lines = [
+        '===================================================',
+        '  SEPSISGUARD AI — CLINICAL ASSESSMENT REPORT',
+        '===================================================',
+        'IMPORTANT DISCLAIMER:',
+        'This report is generated by an AI-assisted clinical',
+        'decision-support research prototype trained on synthetic',
+        'data. It does NOT constitute a clinical diagnosis or',
+        'treatment recommendation. Independent clinical judgment',
+        'is required.',
+        '===================================================',
+        '',
+        'Patient ID:         ' + pid,
+        'Care Location:      ' + (p.bed || '—'),
+        'Room:               ' + (p.room || '—'),
+        'Report Generated:   ' + new Date().toLocaleString(),
+        '',
+        '--- CURRENT VITALS ---',
+        'Heart Rate:         ' + (p.Heart_Rate?.toFixed(0) ?? '—') + ' bpm',
+        'Temperature:        ' + (p.Temperature?.toFixed(1) ?? '—') + ' °C',
+        'Systolic BP:        ' + (p.Blood_Pressure?.toFixed(0) ?? '—') + ' mmHg',
+        'Respiratory Rate:   ' + (p.Resp_Rate?.toFixed(0) ?? '—') + ' /min',
+        'SpO₂:               ' + (p.Oxygen_Level?.toFixed(1) ?? '—') + ' %',
+        'Infection Marker:   ' + (p.Infection_Marker?.toFixed(3) ?? '—'),
+        '',
+        '--- MODEL RISK ASSESSMENT ---',
+        'Risk Score:         ' + (p.risk_score?.toFixed(1) ?? '—') + '%',
+        'Risk Level:         ' + (p.risk_level ?? '—'),
+        'Alert Level:        ' + (p.alert_level ?? '—'),
+        '',
+        '--- CLINICAL REFERENCE SCORES ---',
+        'SIRS Score:         ' + (p.sirs_score ?? '—') + '/4 (Rule-based)',
+        'Partial qSOFA:      ' + (p.qsofa_score ?? '—') + '/2 (Partial — mentation unavailable)',
+        '',
+        '--- CLINICAL TRIGGERS ---',
+        ...(p.explanation || ['None']).map(e => '  • ' + e),
+        '',
+        '--- AI-ASSISTED SUMMARY ---',
+        p.ai_synthesis || 'N/A',
+        '',
+        '--- DISCLAIMER ---',
+        'Model: XGBoost Classifier · Explainability: SHAP TreeExplainer',
+        'Threshold: 0.27 · Trained on PhysioNet 2019 synthetic cohort',
+        'This output does not constitute a clinical diagnosis.',
+        '==================================================='
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'SepsisGuard_Assessment_' + pid + '_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+    showNotification('📄 Assessment exported.', 'success');
+}
+
+// ─── KEYBOARD SHORTCUT: Close modals ─────────────────────────────────────────
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        closeAddPatientModal();
+        closeEditPatientModal();
+        closeVitalsModal();
+    }
+});
+
 console.log('[SepsisGuard v3.0] ICU Intelligence Ecosystem — All systems online.');
+

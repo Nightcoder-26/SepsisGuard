@@ -620,3 +620,202 @@ body::before{content:'';position:fixed;inset:0;
     transition: all 0.2s;
 }
 .context-chip:hover { background: rgba(56, 189, 248, 0.2); transform: translateY(-1px); }
+
+/* ═══════════════════════════════════════════════════════════════
+   PATIENT MANAGEMENT — New styles (Phase 13)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Search wrap + clear button */
+.search-wrap { position: relative; display: flex; align-items: center; flex: 1; min-width: 200px; }
+.search-clear-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: rgba(100,116,139,0.2); border: 1px solid rgba(100,116,139,0.3);
+    color: #94a3b8; border-radius: 50%; width: 20px; height: 20px;
+    font-size: 0.65rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+}
+.search-clear-btn:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4); color: #ef4444; }
+
+/* Add Patient button */
+.add-patient-btn {
+    background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(99,102,241,0.12));
+    border: 1px solid rgba(56,189,248,0.4); color: #38bdf8;
+    font-family: var(--mono); font-size: 0.68rem; font-weight: 600;
+    padding: 8px 14px; border-radius: var(--r-sm); cursor: pointer;
+    transition: all 0.2s; letter-spacing: 0.02em; white-space: nowrap;
+    text-transform: uppercase;
+}
+.add-patient-btn:hover {
+    background: rgba(56,189,248,0.2); box-shadow: 0 0 12px rgba(56,189,248,0.25);
+    transform: translateY(-1px);
+}
+
+/* Empty state */
+.patient-empty-state {
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; padding: 60px 20px; color: var(--text-2);
+    text-align: center; border: 1px dashed rgba(56,189,248,0.15);
+    border-radius: var(--r); margin: 20px; background: rgba(56,189,248,0.02);
+}
+.empty-icon { font-size: 2.5rem; opacity: 0.4; }
+.empty-title { font-size: 1rem; font-weight: 600; color: #94a3b8; }
+.empty-sub { font-size: 0.75rem; color: #475569; max-width: 280px; line-height: 1.5; }
+.btn-clear-empty {
+    margin-top: 8px; padding: 8px 18px; background: rgba(56,189,248,0.08);
+    border: 1px solid rgba(56,189,248,0.25); color: #38bdf8; border-radius: 6px;
+    font-size: 0.72rem; cursor: pointer; font-family: var(--mono); transition: all 0.2s;
+}
+.btn-clear-empty:hover { background: rgba(56,189,248,0.15); }
+
+/* ── MODAL OVERLAY (generic, used by Add/Edit/Vitals modals) ── */
+.modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 2000;
+    background: rgba(2,5,9,0.85); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+    background: linear-gradient(145deg, #0c1a2e, #060d18);
+    border: 1px solid rgba(56,189,248,0.25); border-radius: var(--r);
+    width: 100%; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 40px rgba(56,189,248,0.08);
+    animation: modalIn 0.2s ease;
+}
+@keyframes modalIn { from { opacity:0; transform:scale(0.96) translateY(8px); } to { opacity:1; transform:none; } }
+
+.modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid rgba(56,189,248,0.1);
+}
+.modal-body { padding: 20px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+/* ── FORM ELEMENTS ── */
+.form-field { margin-bottom: 14px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-label {
+    display: block; font-size: 0.68rem; font-weight: 600; color: #94a3b8;
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px;
+    font-family: var(--mono);
+}
+.form-input {
+    width: 100%; background: rgba(2,6,23,0.8); border: 1px solid rgba(56,189,248,0.15);
+    border-radius: var(--r-sm); color: #e2e8f0; font-family: var(--mono);
+    font-size: 0.82rem; padding: 8px 12px; transition: border-color 0.2s;
+    outline: none; -webkit-appearance: none;
+}
+.form-input:focus { border-color: rgba(56,189,248,0.5); box-shadow: 0 0 0 2px rgba(56,189,248,0.08); }
+.form-input option { background: #0c1a2e; }
+.form-hint { font-size: 0.62rem; color: #475569; margin-top: 3px; font-family: var(--mono); }
+.form-error { color: #ef4444; font-size: 0.7rem; margin-top: 8px; min-height: 18px; font-family: var(--mono); }
+.req { color: #ef4444; }
+
+/* Primary/secondary buttons */
+.btn-primary {
+    background: linear-gradient(135deg, rgba(56,189,248,0.2), rgba(99,102,241,0.15));
+    border: 1px solid rgba(56,189,248,0.4); color: #38bdf8; border-radius: 6px;
+    padding: 9px 20px; font-family: var(--mono); font-size: 0.75rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+}
+.btn-primary:hover:not(:disabled) { background: rgba(56,189,248,0.3); transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary {
+    background: rgba(100,116,139,0.1); border: 1px solid rgba(100,116,139,0.25);
+    color: #64748b; border-radius: 6px; padding: 9px 20px;
+    font-family: var(--mono); font-size: 0.75rem; cursor: pointer; transition: all 0.2s;
+}
+.btn-secondary:hover { background: rgba(100,116,139,0.2); color: #94a3b8; }
+
+/* ── VITALS FORM ── */
+.vitals-form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+@media (max-width: 480px) { .vitals-form-grid { grid-template-columns: 1fr 1fr; } }
+.vf-field { display: flex; flex-direction: column; }
+.vf-unit { font-weight: 400; color: #475569; font-size: 0.6rem; }
+.vm-patient-id { font-family: var(--mono); font-size: 0.72rem; color: #38bdf8; margin-bottom: 10px; }
+
+/* Vitals result box */
+.vm-result-box {
+    background: rgba(2,6,23,0.6); border: 1px solid rgba(56,189,248,0.15);
+    border-radius: var(--r-sm); padding: 12px;
+}
+.vm-result-risk { font-size: 1.1rem; font-weight: 700; font-family: var(--mono); margin-bottom: 8px; }
+.vm-result-row {
+    display: flex; justify-content: space-between; font-size: 0.7rem;
+    padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-family: var(--mono); color: #94a3b8;
+}
+.vm-result-synthesis {
+    margin-top: 8px; font-size: 0.68rem; color: #cbd5e1; line-height: 1.5;
+    font-style: italic; padding: 8px; background: rgba(255,255,255,0.02); border-radius: 4px;
+}
+.vm-result-disc { font-size: 0.58rem; color: #475569; margin-top: 6px; font-style: italic; }
+
+/* ── WORKFLOW STATUS ── */
+.workflow-status-select {
+    background: rgba(2,6,23,0.8); border: 1px solid rgba(56,189,248,0.15);
+    border-radius: var(--r-sm); color: #e2e8f0; font-family: var(--mono);
+    font-size: 0.72rem; padding: 6px 10px; cursor: pointer; outline: none;
+}
+.workflow-status-select:focus { border-color: rgba(56,189,248,0.4); }
+
+/* ── ASSESSMENT HISTORY ── */
+.assessment-history-list { max-height: 220px; overflow-y: auto; margin-bottom: 6px; }
+.ah-item {
+    border: 1px solid rgba(56,189,248,0.08); border-radius: var(--r-sm);
+    margin-bottom: 6px; background: rgba(2,6,23,0.4); overflow: hidden;
+}
+.ah-item-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 8px 10px; cursor: pointer; gap: 8px; flex-wrap: wrap;
+    transition: background 0.15s;
+}
+.ah-item-header:hover { background: rgba(56,189,248,0.05); }
+.ah-time { font-size: 0.62rem; color: #475569; font-family: var(--mono); display: block; margin-bottom: 3px; }
+.ah-badge {
+    font-size: 0.62rem; font-family: var(--mono); font-weight: 600;
+    border: 1px solid; border-radius: 3px; padding: 1px 5px;
+}
+.ah-sirs { font-size: 0.58rem; color: #475569; font-family: var(--mono); margin-left: 6px; }
+.ah-toggle { font-size: 0.6rem; color: #475569; flex-shrink: 0; }
+.ah-detail { padding: 8px 10px 10px; border-top: 1px solid rgba(56,189,248,0.06); }
+.ah-synthesis { font-size: 0.66rem; color: #94a3b8; line-height: 1.5; margin-bottom: 6px; font-style: italic; }
+.ah-triggers { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+.ah-vitals { font-size: 0.6rem; color: #475569; font-family: var(--mono); margin-top: 4px; }
+.ah-loading { font-size: 0.65rem; color: #475569; padding: 8px; font-family: var(--mono); text-align: center; }
+.ah-empty { font-size: 0.65rem; color: #475569; padding: 10px; font-style: italic; text-align: center; }
+
+/* ── CLINICIAN NOTES ── */
+.notes-list { max-height: 160px; overflow-y: auto; margin-bottom: 8px; }
+.note-item {
+    border-left: 2px solid rgba(56,189,248,0.2); padding: 6px 10px; margin-bottom: 6px;
+    background: rgba(2,6,23,0.3); border-radius: 0 4px 4px 0;
+}
+.note-meta { font-size: 0.6rem; color: #475569; font-family: var(--mono); margin-bottom: 3px; }
+.note-text { font-size: 0.7rem; color: #cbd5e1; line-height: 1.4; }
+.note-input-row { margin-top: 6px; }
+.note-textarea {
+    width: 100%; background: rgba(2,6,23,0.8); border: 1px solid rgba(56,189,248,0.15);
+    border-radius: var(--r-sm); color: #e2e8f0; font-family: var(--mono);
+    font-size: 0.75rem; padding: 8px 12px; resize: vertical; outline: none;
+    transition: border-color 0.2s; min-height: 56px;
+}
+.note-textarea:focus { border-color: rgba(56,189,248,0.4); }
+
+/* ── NOTIFICATION TOASTS ── */
+.notif-toast {
+    padding: 10px 16px; border-radius: var(--r-sm); font-family: var(--mono);
+    font-size: 0.73rem; font-weight: 500; max-width: 360px;
+    animation: toastIn 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    border: 1px solid; backdrop-filter: blur(8px);
+}
+@keyframes toastIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:none; } }
+.notif-success { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.35); color: #34d399; }
+.notif-warning { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35); color: #fbbf24; }
+.notif-error   { background: rgba(239,68,68,0.12);  border-color: rgba(239,68,68,0.35);  color: #f87171; }
+
+/* Responsive: collapse form-row on small screens */
+@media (max-width: 520px) {
+    .form-row { grid-template-columns: 1fr; }
+    .vitals-form-grid { grid-template-columns: 1fr 1fr; }
+}
