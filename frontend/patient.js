@@ -3,7 +3,7 @@
  * Real-time single-patient monitoring with animated risk orb
  */
 
-const SERVER  = 'http://localhost:5000';
+const SERVER  = window.location.origin;
 const API_KEY = 'sepsisguard_api_key_3f7b9a1c5d8e2f4a6c0b8d1e3f5a7c9b';
 const pid     = new URLSearchParams(window.location.search).get('pid') || 'P001';
 
@@ -586,6 +586,18 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Risk Orb
     startOrb();
+
+    // Initial Fetch via REST so page populates immediately without waiting for telemetry broadcast
+    fetch(SERVER + '/patients', {
+        headers: { 'X-API-Key': API_KEY }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data && data[pid]) {
+            renderAll(data[pid]);
+        }
+    })
+    .catch(err => console.error('[Patient Init Fetch Error]', err));
 });
 
 // Update dashboard.js card link
