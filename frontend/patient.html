@@ -88,6 +88,9 @@ body{overflow-y:auto}
 <div class="global-medical-disclaimer">
     <span>⚠️ Demo system. Trained on synthetic data. Not validated for clinical use. Not a substitute for clinical judgment.</span>
 </div>
+<div class="simulated-telemetry-banner">
+    📡 SIMULATED TELEMETRY — DEMONSTRATION DATA · AN AI-ASSISTED CLINICAL DECISION-SUPPORT RESEARCH PROTOTYPE
+</div>
 <div id="app" style="display:flex;flex-direction:column">
 
 <div class="pt-header">
@@ -168,6 +171,33 @@ body{overflow-y:auto}
             </div>
         </div>
 
+        <!-- CLINICIAN RISK ASSESSMENT ACTION -->
+        <button class="run-assessment-btn" id="run-assessment-btn" onclick="runClinicianAssessment()">
+            <span>⚡</span><span>Run Risk Assessment</span>
+        </button>
+        <div id="assessment-timestamp" class="assessment-timestamp" style="display:none;text-align:center;margin-bottom:8px">Last assessed: —</div>
+
+        <!-- EMPTY STATE -->
+        <div id="empty-assessment-state" class="assessment-empty-card">
+            <div class="empty-icon">📊</div>
+            <div class="empty-title">No risk assessment has been run for this patient.</div>
+            <div class="empty-sub">Review available patient measurements and click "Run Risk Assessment" to evaluate the ML model's risk estimate, SHAP explanation, and clinical reference scores.</div>
+            <button class="run-assessment-btn" style="margin:0 auto;max-width:260px" onclick="runClinicianAssessment()">⚡ Run Risk Assessment</button>
+        </div>
+
+        <!-- LOADING STATE -->
+        <div id="loading-assessment-state" class="assessment-loading-card" style="display:none">
+            <div class="spinner"></div>
+            <div class="loading-title">Analyzing patient data...</div>
+            <div class="loading-steps">Validating vitals → Running risk model → Computing SHAP → Generating summary</div>
+        </div>
+
+        <!-- ERROR BANNER -->
+        <div id="assessment-error-banner" class="assessment-error-banner" style="display:none">
+            <span style="font-size:1.1rem">⚠️</span>
+            <span id="assessment-error-msg">Risk assessment could not be completed. Please verify patient data and try again.</span>
+        </div>
+
         <!-- Risk Contrib -->
         <div class="pt-panel" style="margin-top:4px">
             <div class="pt-panel-title"><span></span>Model Explanation — SHAP</div>
@@ -187,8 +217,9 @@ body{overflow-y:auto}
                     <div class="orb-risk-level" id="orb-level">—</div>
                 </div>
             </div>
-            <div class="orb-metrics" style="grid-template-columns: 1fr;">
+            <div class="orb-metrics" style="grid-template-columns: 1fr 1fr; gap: 8px;">
                 <div class="om"><div class="om-val" id="m-sirs">—</div><div class="om-lbl">SIRS Score (Rule-based)</div></div>
+                <div class="om"><div class="om-val" id="m-qsofa">—</div><div class="om-lbl">Partial qSOFA (0-2)</div><div style="font-size:0.55rem;color:#94a3b8;margin-top:1px">Partial — mentation unavailable</div></div>
             </div>
         </div>
 

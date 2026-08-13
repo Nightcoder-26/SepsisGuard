@@ -185,13 +185,10 @@ function updateUI(res) {
     const rr = parseFloat(document.getElementById("rr").value);
     const marker = parseFloat(document.getElementById("marker").value);
     
-    let sirsCount = 0;
-    if (temp < 36 || temp > 38) sirsCount++;
-    if (hr > 90) sirsCount++;
-    if (rr > 20) sirsCount++;
-    if (marker > 0.5) sirsCount++; 
     const sirsEl = document.getElementById("sirs-score");
-    if (sirsEl) sirsEl.textContent = `${sirsCount}/4`;
+    if (sirsEl) sirsEl.textContent = `${res.sirs_score ?? 0}/4`;
+    const qsofaEl = document.getElementById("qsofa-score");
+    if (qsofaEl) qsofaEl.textContent = `${res.qsofa_score ?? 0}/2`;
 
     // Update Ranges UI
     const bp = parseFloat(document.getElementById("bp").value);

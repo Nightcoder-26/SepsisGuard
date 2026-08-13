@@ -201,6 +201,12 @@ components:
         sirs_score:
           type: integer
           example: 3
+        qsofa_score:
+          type: integer
+          example: 2
+        qsofa_note:
+          type: string
+          example: "Partial — mentation unavailable"
         explanation:
           type: array
           items:

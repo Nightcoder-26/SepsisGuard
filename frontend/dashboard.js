@@ -375,6 +375,7 @@ function updateModal(data) {
     setText('m-risk-lbl',   'Sepsis Risk Score');
     setText('m-risk-level', data.risk_level || '—');
     setText('m-sirs',  (data.sirs_score ?? '—') + '/4');
+    setText('m-qsofa', (data.qsofa_score ?? '—') + '/2');
 
     const tList = document.getElementById('m-triggers');
     if (tList) {
@@ -497,6 +498,43 @@ function closeModal() {
     if (modalEcg)   { modalEcg.stop();    modalEcg   = null; }
     if (modalChart) { modalChart.destroy(); modalChart = null; }
     modalPid = null;
+}
+
+function runModalAssessment() {
+    if (!modalPid || !patients[modalPid]) return;
+    const btn = document.getElementById('m-assessment-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Running Assessment…'; }
+    
+    const p = patients[modalPid];
+    const payload = {
+        Heart_Rate: p.Heart_Rate || p.vitals?.Heart_Rate || 80,
+        Oxygen_Level: p.Oxygen_Level || p.vitals?.Oxygen_Level || 98,
+        Temperature: p.Temperature || p.vitals?.Temperature || 37.0,
+        Blood_Pressure: p.Blood_Pressure || p.vitals?.Blood_Pressure || 120,
+        Resp_Rate: p.Resp_Rate || p.vitals?.Resp_Rate || 16,
+        Infection_Marker: p.Infection_Marker || p.vitals?.Infection_Marker || 0.5,
+        Age: p.Age || p.vitals?.Age || 65,
+        generate_synthesis: true
+    };
+
+    fetch(SERVER + '/predict', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': API_KEY
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Risk Assessment'; }
+        patients[modalPid] = { ...patients[modalPid], ...data };
+        updateModal(patients[modalPid]);
+    })
+    .catch(err => {
+        if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Risk Assessment'; }
+        console.error('[Assessment Error]', err);
+    });
 }
 
 function requestAI() {

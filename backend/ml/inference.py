@@ -112,13 +112,18 @@ def run_ml_pipeline(pid, vitals, generate_ai=False):
             inf_val > 0.5,
         ])
 
+        qsofa = sum([
+            rr_val >= 22,
+            bp_val <= 100,
+        ])
+
         shap_explanation = explain_prediction(model, explainer, feature_dict, feature_cols, top_k=5)
         alert_level = "CRITICAL" if prob >= 50.0 else ("WARNING" if prob >= 27.0 else "STABLE")
 
         ai_synthesis = ""
         if generate_ai:
             from backend.services.copilot import generate_gemini_synthesis
-            ai_synthesis = generate_gemini_synthesis(vitals, prob, ri, explanation)
+            ai_synthesis = generate_gemini_synthesis(vitals, prob, ri, explanation, shap_explanation)
 
         return {
             "risk_score":       round(prob, 1),
@@ -127,6 +132,8 @@ def run_ml_pipeline(pid, vitals, generate_ai=False):
             "message":          ri['msg'],
             "explanation":      explanation or ["All vital signs within normal ranges."],
             "sirs_score":       sirs,
+            "qsofa_score":      qsofa,
+            "qsofa_note":       "Partial — mentation unavailable",
             "shap_explanation": shap_explanation,
             "contributions":    shap_explanation,
             "ai_synthesis":     ai_synthesis,

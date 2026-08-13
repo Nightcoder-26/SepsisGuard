@@ -11,6 +11,9 @@
 <div class="global-medical-disclaimer">
     <span>⚠️ Demo system. Trained on synthetic data. Not validated for clinical use. Not a substitute for clinical judgment.</span>
 </div>
+<div class="simulated-telemetry-banner">
+    📡 SIMULATED TELEMETRY — DEMONSTRATION DATA · AN AI-ASSISTED CLINICAL DECISION-SUPPORT RESEARCH PROTOTYPE
+</div>
 <canvas id="particle-canvas"></canvas>
 <div id="app">
 
@@ -159,11 +162,13 @@
         <div class="msec">AI Clinical Synthesis</div>
         <div class="ai-disclaimer-badge">AI-generated — not a clinical order. Independent clinical judgment required.</div>
         <div class="modal-synthesis" id="m-synthesis">Awaiting AI analysis…</div>
-        <button class="ai-btn" id="m-ai-btn" style="margin-top:8px" onclick="requestAI()">⚡ Generate Full AI Synthesis</button>
+        <button class="run-assessment-btn" id="m-assessment-btn" style="margin-top:10px" onclick="runModalAssessment()">⚡ Run Risk Assessment</button>
+        <button class="ai-btn" id="m-ai-btn" style="margin-top:6px" onclick="requestAI()">⚡ Generate Full AI Synthesis</button>
         <button class="ai-btn" style="margin-top:6px;background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.3);color:#a5b4fc" onclick="openPatientPage()">🔬 Open Full Patient Detail Screen →</button>
     </div>
-    <div class="modal-metrics">
-        <div class="mvc" style="grid-column: span 4;"><div class="mvc-val" style="font-size:1rem" id="m-sirs">—</div><div class="mvc-name">SIRS Score (Rule-based)</div></div>
+    <div class="modal-metrics" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="mvc"><div class="mvc-val" style="font-size:1rem" id="m-sirs">—</div><div class="mvc-name">SIRS Score (Rule-based)</div></div>
+        <div class="mvc"><div class="mvc-val" style="font-size:1rem" id="m-qsofa">—</div><div class="mvc-name">Partial qSOFA (0-2)</div><div style="font-size:0.55rem;color:#94a3b8">Partial — mentation unavailable</div></div>
     </div>
 </div>
 </div>

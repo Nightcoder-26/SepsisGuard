@@ -24,6 +24,71 @@ let currentRisk = 0;
 let currentColor = '#10b981';
 let currentLevel = 'STABLE';
 let prevLevel = null;
+let currentVitals = {};
+let hasAssessed = false;
+
+// ─── CLINICIAN RISK ASSESSMENT WORKFLOW ─────────────────────────
+function runClinicianAssessment() {
+    const emptyState = document.getElementById('empty-assessment-state');
+    const loadingState = document.getElementById('loading-assessment-state');
+    const errorBanner = document.getElementById('assessment-error-banner');
+    const tsEl = document.getElementById('assessment-timestamp');
+    const btn = document.getElementById('run-assessment-btn');
+
+    if (emptyState) emptyState.style.display = 'none';
+    if (errorBanner) errorBanner.style.display = 'none';
+    if (loadingState) loadingState.style.display = 'block';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span>⏳</span><span>Analyzing Patient Data...</span>'; }
+
+    const payload = {
+        Heart_Rate: currentVitals.Heart_Rate || 80,
+        Oxygen_Level: currentVitals.Oxygen_Level || 98,
+        Temperature: currentVitals.Temperature || 37.0,
+        Blood_Pressure: currentVitals.Blood_Pressure || 120,
+        Resp_Rate: currentVitals.Resp_Rate || 16,
+        Infection_Marker: currentVitals.Infection_Marker || 0.5,
+        Age: currentVitals.Age || 65,
+        generate_synthesis: true
+    };
+
+    fetch(SERVER + '/predict', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': API_KEY
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(async (res) => {
+        if (!res.ok) {
+            if (res.status === 401) throw new Error("Your session or API authorization is no longer valid.");
+            if (res.status === 422) throw new Error("Some patient measurements are invalid or missing.");
+            if (res.status === 429) throw new Error("Too many requests. Please wait before trying again.");
+            throw new Error("Risk assessment is temporarily unavailable.");
+        }
+        return res.json();
+    })
+    .then((data) => {
+        if (loadingState) loadingState.style.display = 'none';
+        if (btn) { btn.disabled = false; btn.innerHTML = '<span>⚡</span><span>Run Risk Assessment</span>'; }
+        hasAssessed = true;
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString();
+        if (tsEl) { tsEl.style.display = 'block'; tsEl.textContent = 'Last assessed: ' + timeStr; }
+
+        renderAll({ ...data, vitals: payload, name: document.getElementById('pt-name')?.textContent || pid });
+    })
+    .catch((err) => {
+        if (loadingState) loadingState.style.display = 'none';
+        if (btn) { btn.disabled = false; btn.innerHTML = '<span>⚡</span><span>Run Risk Assessment</span>'; }
+        if (errorBanner) {
+            errorBanner.style.display = 'flex';
+            const msgEl = document.getElementById('assessment-error-msg');
+            if (msgEl) msgEl.textContent = err.message || "Risk assessment could not be completed. Please verify patient data and try again.";
+        }
+    });
+}
 
 // ─── Socket.IO ──────────────────────────────────
 const socket = io(SERVER, {
@@ -92,6 +157,8 @@ function renderAll(data) {
     setVCard('v-rr',   'vb-rr',   v.Resp_Rate,        12,  20,   false, 'bpm');
     setVCard('v-inf',  'vb-inf',  v.Infection_Marker, 0,   0.5,  true,  '');
 
+    currentVitals = v;
+
     // Orb
     setText('orb-pct',   risk.toFixed(0) + '%');
     setText('orb-level', data.risk_level || '—');
@@ -100,6 +167,7 @@ function renderAll(data) {
 
     // Metrics
     setText('m-sirs',  (data.sirs_score ?? '—') + '/4');
+    setText('m-qsofa', (data.qsofa_score ?? '—') + '/2');
 
     // Triggers
     const trig = document.getElementById('pt-triggers');
