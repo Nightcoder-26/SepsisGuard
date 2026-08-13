@@ -1,78 +1,71 @@
 # -*- coding: utf-8 -*-
 """
 AI Copilot Service Module (Phase 10 / Phase 12)
-Handles Gemini LLM prompt generation, API calls, and local narrative synthesis.
-Enforces non-clinical safety restrictions: no treatment directives or orders. Uses structured logging.
+Local narrative synthesis only — no external API calls during telemetry loop.
+Gemini API is retained only for the interactive Copilot chat (on-demand).
+Enforces non-clinical safety restrictions: no treatment directives or orders.
 """
 
-import requests
 from backend.config import GEMINI_API_KEY, logger
+
 
 def generate_gemini_synthesis(vitals, prob, ri, explanation, shap_explanation=None):
     """
-    Generates a concise 2-sentence clinical observation narrative from Gemini API grounded in SHAP attributions
-    or falls back to local template synthesis if offline.
+    Generates a concise clinical observation narrative grounded in SHAP attributions.
+    Uses local template synthesis — no Gemini API call during telemetry loop.
+    This prevents excessive external calls and eliminates rate-limit warnings.
     """
-    try:
-        if not GEMINI_API_KEY:
-            logger.info("Gemini API key not configured; using local narrative synthesis fallback.")
-            return _local_synthesis(ri, explanation, prob, shap_explanation)
-            
-        shap_factors = []
-        if isinstance(shap_explanation, dict) and "features" in shap_explanation:
-            for f in shap_explanation["features"][:3]:
-                shap_factors.append(f"{f.get('display_name', f.get('feature'))} ({f.get('direction', 'contributes')})")
-        shap_str = ", ".join(shap_factors) if shap_factors else ", ".join(explanation[:3])
+    return _local_synthesis(ri, explanation, prob, shap_explanation)
 
-        prompt = (
-            f"You are explaining an ML model risk output to a healthcare professional in an ICU. "
-            f"Model Sepsis Risk Estimate: {prob:.1f}% ({ri['level']}). "
-            f"Top SHAP Model-Attributed Features: {shap_str}. "
-            f"Current Vitals: HR={vitals['Heart_Rate']:.0f}bpm, Temp={vitals['Temperature']:.1f}C, "
-            f"SysBP={vitals['Blood_Pressure']:.0f}mmHg, RR={vitals['Resp_Rate']:.0f}bpm, SpO2={vitals['Oxygen_Level']:.1f}%. "
-            f"Instructions: "
-            f"1. Explain why the model produced its risk estimate based ONLY on the supplied SHAP model evidence. "
-            f"2. Do NOT diagnose sepsis. Do NOT claim clinical certainty. "
-            f"3. Do NOT prescribe medications, antibiotics, fluids, vasopressors, or clinical treatment directives. "
-            f"4. Do NOT invent missing patient information. "
-            f"5. Frame the output as model explanation for clinician decision-support requiring independent clinical judgment. "
-            f"Write exactly 2 concise clinical observation sentences. No formatting, raw text only."
-        )
-        url  = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-        resp = requests.post(url, headers={'Content-Type': 'application/json'},
-                             json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=8)
-        r = resp.json()
-        if "error" in r:
-            logger.warning("Gemini API returned error response; falling back to local synthesis.")
-            return _local_synthesis(ri, explanation, prob, shap_explanation)
-        return r['candidates'][0]['content']['parts'][0]['text'].replace('\n', ' ').strip()
-    except Exception as e:
-        logger.warning(f"Gemini API request exception ({e}); falling back to local synthesis.")
-        return _local_synthesis(ri, explanation, prob, shap_explanation)
 
 def _local_synthesis(ri, explanation, prob, shap_explanation=None):
     top_feature = "key physiological indicators"
+    second_feature = None
+
     if isinstance(shap_explanation, dict) and "features" in shap_explanation and shap_explanation["features"]:
-        top_feature = shap_explanation["features"][0].get("display_name", "key vitals")
+        risk_features = [f for f in shap_explanation["features"] if f.get("direction") == "increases_risk"]
+        if risk_features:
+            top_feature = risk_features[0].get("display_name", "key vitals")
+            if len(risk_features) > 1:
+                second_feature = risk_features[1].get("display_name")
+        else:
+            top_feature = shap_explanation["features"][0].get("display_name", "key vitals")
     elif explanation:
         top_feature = explanation[0]
+        if len(explanation) > 1:
+            second_feature = explanation[1]
+
+    factor_str = top_feature
+    if second_feature:
+        factor_str = f"{top_feature} and {second_feature}"
 
     if prob >= 50:
-        return (f"The model estimates an elevated sepsis risk ({prob:.0f}%) influenced primarily by model attributions from {top_feature}. "
-                f"Independent clinical assessment and correlation with the patient's full context are recommended.")
+        return (
+            f"The model estimates an elevated sepsis risk ({prob:.0f}%) primarily attributed to {factor_str}. "
+            f"Independent clinical assessment and correlation with the patient's full context are recommended."
+        )
     elif prob >= 27:
-        return (f"The model indicates moderate sepsis risk ({prob:.0f}%) above operating threshold (0.27), driven by {top_feature}. "
-                f"Increased monitoring frequency and clinical review are recommended.")
+        return (
+            f"The model indicates moderate sepsis risk ({prob:.0f}%) above the operating threshold (0.27), "
+            f"driven by model attribution from {factor_str}. "
+            f"Increased monitoring frequency and clinical review are indicated."
+        )
     else:
-        return (f"The model estimates a low risk pattern ({prob:.0f}%) with physiological parameters within standard reference ranges. "
-                f"Standard clinical monitoring is indicated.")
+        return (
+            f"The model estimates a low risk pattern ({prob:.0f}%) with contributing factors within standard reference ranges. "
+            f"Standard clinical monitoring is indicated."
+        )
+
 
 def copilot_answer(question, context):
     """
-    Answers clinician questions about ICU patients using Gemini API or fallback rules.
+    Answers clinician questions about ICU patients.
+    Attempts Gemini API for interactive on-demand queries; falls back to local rules.
+    This is only called on explicit clinician interaction, not on the telemetry loop.
     """
     try:
         if GEMINI_API_KEY:
+            import requests
             prompt = (
                 f"You are SepsisGuard Copilot, an ICU clinical decision-support AI. "
                 f"Context: {context}. "
@@ -82,9 +75,13 @@ def copilot_answer(question, context):
                 f"Frame responses as decision-support requiring independent clinical verification. "
                 f"Answer concisely in 2-3 sentences, clinically precise, no bullet points."
             )
-            url  = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-            resp = requests.post(url, headers={'Content-Type': 'application/json'},
-                                 json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=8)
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+            resp = requests.post(
+                url,
+                headers={'Content-Type': 'application/json'},
+                json={"contents": [{"parts": [{"text": prompt}]}]},
+                timeout=8
+            )
             r = resp.json()
             if "error" not in r:
                 return r['candidates'][0]['content']['parts'][0]['text'].replace('\n', ' ').strip()
@@ -92,7 +89,6 @@ def copilot_answer(question, context):
                 logger.warning("Gemini Copilot API error; falling back to local rules.")
     except Exception as e:
         logger.warning(f"Gemini Copilot request exception ({e}); falling back to local rules.")
-        pass
 
     q = question.lower()
     if "risk" in q or "why" in q:

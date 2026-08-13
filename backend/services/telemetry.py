@@ -112,8 +112,7 @@ def simulate_vitals(pid, tick):
 
 def telemetry_loop(socketio_instance):
     global telemetry_running
-    tick       = 0
-    ai_counter = {pid: random.randint(0, 10) for pid in PATIENTS}
+    tick = 0
     logger.info("Telemetry Engine simulation loop started")
 
     while telemetry_running:
@@ -122,7 +121,7 @@ def telemetry_loop(socketio_instance):
                 vitals    = simulate_vitals(pid, tick)
                 patient_state[pid].update(vitals)
 
-                gen_ai = (ai_counter[pid] == 0)
+                gen_ai = False  # Synthesis only on explicit clinician request (Run Risk Assessment / Generate AI Synthesis)
                 result = run_ml_pipeline(pid, vitals, generate_ai=gen_ai)
 
                 if result:
@@ -155,7 +154,6 @@ def telemetry_loop(socketio_instance):
 
                     _prev_alert[pid] = new_alert
 
-                ai_counter[pid] = (ai_counter[pid] + 1) % 22
 
                 packet = {
                     "pid":           pid,
