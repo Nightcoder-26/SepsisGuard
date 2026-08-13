@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SepsisGuard AI — Clinical Assessment Demo</title>
+<meta name="description" content="Dedicated judge-demo clinical decision-support test workflow page"/>
+<link rel="stylesheet" href="dashboard.css"/>
+<style>
+/* Page specific styling layout extending dashboard.css visual elements */
+.demo-layout {
+    display: grid;
+    grid-template-columns: 460px 1fr;
+    gap: 16px;
+    padding: 0 16px 16px;
+    height: calc(100vh - 120px);
+    overflow: hidden;
+}
+@media (max-width: 1024px) {
+    .demo-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        overflow-y: auto;
+    }
+}
+.demo-scroll-panel {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.demo-scroll-panel::-webkit-scrollbar {
+    width: 6px;
+}
+.demo-scroll-panel::-webkit-scrollbar-thumb {
+    background: rgba(56,189,248,0.15);
+    border-radius: 3px;
+}
+.demo-scroll-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(56,189,248,0.3);
+}
+
+/* Pre-styled visual flow chart */
+.arch-flow-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2,6,23,0.5);
+    border: 1px dashed var(--border);
+    border-radius: var(--r-sm);
+    padding: 8px;
+    margin-bottom: 12px;
+}
+.arch-step {
+    font-size: 0.58rem;
+    font-family: var(--mono);
+    color: var(--text-2);
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 4px 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.arch-step.active {
+    color: var(--accent);
+    border-color: rgba(56,189,248,0.3);
+    background: rgba(56,189,248,0.04);
+}
+.arch-arrow {
+    color: #475569;
+    font-size: 0.65rem;
+}
+
+/* Collapsible technical console code block style */
+.tech-console {
+    background: #020509;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: var(--r-sm);
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: #a8b2c1;
+    margin-top: 10px;
+    overflow: hidden;
+}
+.tech-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    user-select: none;
+}
+.tech-header:hover {
+    background: rgba(255,255,255,0.04);
+}
+.tech-title {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.tech-body {
+    padding: 12px;
+    max-height: 240px;
+    overflow-y: auto;
+}
+.tech-code {
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+/* Preset case selectors */
+.preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.preset-btn {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text-2);
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+.preset-btn:hover {
+    background: rgba(56,189,248,0.08);
+    border-color: rgba(56,189,248,0.3);
+    color: var(--accent);
+}
+.preset-btn.active {
+    background: rgba(56,189,248,0.12);
+    border-color: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 8px rgba(56,189,248,0.15);
+}
+
+/* Gauge layout */
+.gauge-container {
+    background: rgba(2,6,23,0.4);
+    border: 1px solid rgba(255,255,255,0.03);
+    border-radius: var(--r-sm);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.gauge-track {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: linear-gradient(to right, var(--success) 0%, var(--warning) 50%, var(--danger) 100%);
+    border-radius: 4px;
+    margin: 10px 0 6px;
+}
+.gauge-needle {
+    position: absolute;
+    top: -4px;
+    left: 0%;
+    width: 2px;
+    height: 16px;
+    background: #ffffff;
+    box-shadow: 0 0 8px #ffffff;
+    transition: left 0.35s ease;
+}
+.gauge-needle::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -3px;
+    border-width: 4px 4px 0;
+    border-style: solid;
+    border-color: #ffffff transparent transparent;
+}
+.gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 0.58rem;
+    font-family: var(--mono);
+    color: var(--text-2);
+}
+
+/* Visual risk label display styles */
+.est-badge {
+    font-size: 1.25rem;
+    font-weight: 900;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+    text-shadow: 0 0 10px currentColor;
+}
+.est-sub {
+    font-size: 0.65rem;
+    color: var(--text-2);
+}
+
+/* Visual timeline event audit items */
+.step-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-2);
+}
+.step-dot.ok {
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
+}
+
+</style>
+</head>
+<body>
+<div class="global-medical-disclaimer">
+    <span>⚠️ Use synthetic/example patient data only. This demonstration is not for real clinical decision-making. SepsisGuard is a research prototype.</span>
+</div>
+<div class="simulated-telemetry-banner">
+    🧪 JUDGE WORKSPACE — CLINICAL PIPELINE STRESS TEST CLIENT · REAL ML INFERENCE & SHAP GROUNDING
+</div>
+<canvas id="particle-canvas"></canvas>
+
+<div id="app">
+    <!-- ══ COMMAND BAR ══ -->
+    <header class="command-bar">
+        <div class="brand">
+            <div class="brand-logo">⚕</div>
+            <div>
+                <div class="brand-name">SepsisGuard AI</div>
+                <div class="brand-sub">Clinical Assessment Demonstration Node</div>
+            </div>
+        </div>
+        <div class="cb-divider"></div>
+        <div class="sys-status">
+            <span style="font-family:var(--mono);font-size:0.6rem;color:var(--accent)">MODE: VALIDATED REST INFERENCE</span>
+        </div>
+        <div class="cb-divider"></div>
+        <button class="about-model-btn" onclick="location.href='/'" title="Return to live clinical monitoring dashboard" style="background:rgba(56,189,248,0.1);border-color:rgba(56,189,248,0.25);color:var(--accent)">
+            <span>🏠</span><span>Monitored Patients</span>
+        </button>
+        <div class="cb-clock" id="clock">00:00:00</div>
+    </header>
+
+    <!-- ══ DEMO RUN LAYOUT ══ -->
+    <div class="demo-layout">
+
+        <!-- LEFT: INPUT FORM & PRESETS -->
+        <div class="demo-scroll-panel">
+            <div class="panel">
+                <div class="panel-title"><span></span>DEMO SCENARIOS</div>
+                <div style="font-size:0.58rem;color:var(--text-2);margin-bottom:8px;font-family:var(--mono)">Select a profile to load preset measurements into the assessment tool:</div>
+                <div class="preset-grid">
+                    <button class="preset-btn" onclick="loadPreset('normal', this)">🟢 Normal Profile</button>
+                    <button class="preset-btn" onclick="loadPreset('warning', this)">🟡 Elevated Risk</button>
+                    <button class="preset-btn" onclick="loadPreset('critical', this)">🔴 High-Risk Profile</button>
+                </div>
+
+                <div class="panel-title"><span></span>PATIENT ASSESSMENT INPUT</div>
+                <div class="form-body" style="padding:0">
+                    
+                    <div class="msec">Group 1 — Patient Context</div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label class="form-label">Patient ID <span class="req">*</span></label>
+                            <input id="dm-pid" class="form-input" type="text" value="DEMO-P001" placeholder="e.g. DEMO-P001" maxlength="16"/>
+                        </div>
+                        <div class="form-field">
+                            <label class="form-label">Age <span class="req">*</span></label>
+                            <input id="dm-age" class="form-input" type="number" min="0" max="120" value="65"/>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label class="form-label">Sex</label>
+                            <select id="dm-gender" class="form-input">
+                                <option value="M">Male</option>
+                                <option value="F">Female</option>
+                                <option value="Unknown">Unknown</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label class="form-label">ICU Care Location</label>
+                            <input id="dm-bed" class="form-input" type="text" value="ICU-DEMO" placeholder="e.g. ICU-01"/>
+                        </div>
+                    </div>
+
+                    <div class="msec" style="margin-top:10px">Group 2 — Vital Signs (Model Supported)</div>
+                    <div class="vitals-form-grid">
+                        <div class="vf-field">
+                            <label class="form-label">Heart Rate <span class="vf-unit">bpm</span></label>
+                            <input id="dm-hr" class="form-input" type="number" min="20" max="300" value="80"/>
+                            <div class="form-hint">60–100</div>
+                        </div>
+                        <div class="vf-field">
+                            <label class="form-label">Temperature <span class="vf-unit">°C</span></label>
+                            <input id="dm-temp" class="form-input" type="number" min="30" max="45" step="0.1" value="37.0"/>
+                            <div class="form-hint">36.5–37.5</div>
+                        </div>
+                        <div class="vf-field">
+                            <label class="form-label">Systolic BP <span class="vf-unit">mmHg</span></label>
+                            <input id="dm-bp" class="form-input" type="number" min="30" max="250" value="120"/>
+                            <div class="form-hint">90–120</div>
+                        </div>
+                        <div class="vf-field">
+                            <label class="form-label">Resp Rate <span class="vf-unit">/min</span></label>
+                            <input id="dm-rr" class="form-input" type="number" min="4" max="70" value="16"/>
+                            <div class="form-hint">12–20</div>
+                        </div>
+                        <div class="vf-field">
+                            <label class="form-label">SpO₂ <span class="vf-unit">%</span></label>
+                            <input id="dm-spo2" class="form-input" type="number" min="50" max="100" step="0.1" value="98.0"/>
+                            <div class="form-hint">95–100</div>
+                        </div>
+                        <div class="vf-field">
+                            <label class="form-label">Infection Mkr <span class="vf-unit">0–1</span></label>
+                            <input id="dm-inf" class="form-input" type="number" min="0" max="1" step="0.001" value="0.15"/>
+                            <div class="form-hint">Elevated: &gt; 0.5</div>
+                        </div>
+                    </div>
+
+                    <div id="dm-error" class="form-error"></div>
+                    <div style="display:flex;gap:8px;margin-top:14px">
+                        <button class="btn-secondary" style="flex:1" onclick="resetDemoForm()">Reset Form</button>
+                        <button id="dm-submit-btn" class="btn-primary" style="flex:2" onclick="runDemoAssessment()">⚡ Run Risk Assessment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: RESULTS SCREEN -->
+        <div class="demo-scroll-panel">
+            <!-- Pipeline flowchart -->
+            <div class="arch-flow-wrap">
+                <div class="arch-step active" id="ast-client"><div class="step-dot ok"></div>Client Input</div>
+                <div class="arch-arrow">&rarr;</div>
+                <div class="arch-step" id="ast-validate"><div class="step-dot" id="ad-validate"></div>API Validator</div>
+                <div class="arch-arrow">&rarr;</div>
+                <div class="arch-step" id="ast-model"><div class="step-dot" id="ad-model"></div>XGBoost Model</div>
+                <div class="arch-arrow">&rarr;</div>
+                <div class="arch-step" id="ast-shap"><div class="step-dot" id="ad-shap"></div>SHAP Explainer</div>
+                <div class="arch-arrow">&rarr;</div>
+                <div class="arch-step" id="ast-scores"><div class="step-dot" id="ad-scores"></div>SIRS / qSOFA</div>
+                <div class="arch-arrow">&rarr;</div>
+                <div class="arch-step" id="ast-ai"><div class="step-dot" id="ad-ai"></div>AI Narrative</div>
+            </div>
+
+            <!-- Empty result placeholder -->
+            <div id="demo-result-empty" class="patient-empty-state" style="margin:0;border-style:solid;height:calc(100% - 70px)">
+                <div class="empty-icon">⚕</div>
+                <div class="empty-title">Awaiting Assessment</div>
+                <div class="empty-sub">Load a preset or enter patient measurements on the left panel, then click "Run Risk Assessment" to call the clinical pipeline.</div>
+            </div>
+
+            <!-- Real result panel -->
+            <div id="demo-result-panel" style="display:none">
+                <div class="panel" style="margin-bottom:12px">
+                    <div class="panel-title"><span></span>MODEL RISK ASSESSMENT</div>
+                    
+                    <div class="gauge-container">
+                        <div id="dm-res-level" class="est-badge">—</div>
+                        <div id="dm-res-score" class="est-sub">0.0% Sepsis Risk Score</div>
+                        <div class="gauge-track">
+                            <div id="dm-gauge-needle" class="gauge-needle"></div>
+                        </div>
+                        <div class="gauge-labels">
+                            <span>LOW</span>
+                            <span>MODERATE</span>
+                            <span>HIGH</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-vitals" style="grid-template-columns:repeat(4, 1fr)">
+                        <div class="mvc"><div class="mvc-val" id="dm-card-risk" style="font-size:1.1rem">—</div><div class="mvc-name">Model Estimate</div></div>
+                        <div class="mvc"><div class="mvc-val" id="dm-card-sirs" style="font-size:1.1rem">—</div><div class="mvc-name">SIRS criteria</div></div>
+                        <div class="mvc"><div class="mvc-val" id="dm-card-qsofa" style="font-size:1.1rem">—</div><div class="mvc-name">Partial qSOFA</div></div>
+                        <div class="mvc"><div class="mvc-val" id="dm-card-time" style="font-size:0.75rem;padding:6px 0">—</div><div class="mvc-name">Assessment Completed</div></div>
+                    </div>
+                </div>
+
+                <!-- SHAP bars -->
+                <div class="panel" style="margin-bottom:12px">
+                    <div class="panel-title"><span></span>Why did the model produce this result?</div>
+                    <div style="font-size:0.58rem;color:var(--text-2);margin-bottom:8px">SHAP tree values describe relative feature attributions and do not establish clinical causality.</div>
+                    <div id="dm-shap-bars" class="explain-bars" style="max-height:none"></div>
+                </div>
+
+                <!-- Reference scores breakdown -->
+                <div class="panel" style="margin-bottom:12px">
+                    <div class="panel-title"><span></span>CLINICAL REFERENCE SCORES</div>
+                    <div class="modal-metrics" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom:12px">
+                        <div>
+                            <div class="msec">SIRS Score (<span id="dm-sirs-score">—</span>/4)</div>
+                            <div style="font-size:0.58rem;color:var(--text-2);margin-bottom:6px">Rule-based criterion set:</div>
+                            <div class="criteria-checklist" style="display:flex;flex-direction:column;gap:3px">
+                                <div class="chk-item" id="dm-chk-temp"><span>• Temperature (&gt;38.0°C / &lt;36.0°C)</span><span class="chk-badge">—</span></div>
+                                <div class="chk-item" id="dm-chk-hr"><span>• Heart Rate (&gt;90 bpm)</span><span class="chk-badge">—</span></div>
+                                <div class="chk-item" id="dm-chk-rr"><span>• Resp Rate (&gt;20 /min)</span><span class="chk-badge">—</span></div>
+                                <div class="chk-item" id="dm-chk-wbc"><span>• Infection Marker / WBC (&gt;0.5)</span><span class="chk-badge">—</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="msec">Partial qSOFA (<span id="dm-qsofa-score">—</span>/2)</div>
+                            <div style="font-size:0.58rem;color:var(--text-2);margin-bottom:6px">Quick Sequential Organ Failure Assessment (partial):</div>
+                            <div class="criteria-checklist" style="display:flex;flex-direction:column;gap:3px">
+                                <div class="chk-item" id="dm-chk-qrr"><span>• Respiratory Rate (&ge;22 /min)</span><span class="chk-badge">—</span></div>
+                                <div class="chk-item" id="dm-chk-sbp"><span>• Systolic BP (&le;100 mmHg)</span><span class="chk-badge">—</span></div>
+                                <div class="chk-item unmet" style="border-style:dashed;opacity:0.6"><span>○ GCS Mentation (Unavailable)</span><span class="chk-badge">—</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size:0.55rem;color:var(--text-2);line-height:1.4">
+                        SIRS is a rule-based inflammatory response screening set. Partial qSOFA uses respiratory rate and blood pressure thresholds available to this prototype. Neither score establishes a diagnostic sepsis determination independently.
+                    </div>
+                </div>
+
+                <!-- AI narrative -->
+                <div class="panel" style="margin-bottom:12px">
+                    <div class="panel-title"><span></span>AI-ASSISTED CLINICAL SUMMARY</div>
+                    <div class="ai-disclaimer-badge">AI-generated — not a clinical order. Independent clinical judgment required.</div>
+                    <div id="dm-ai-synthesis" class="modal-synthesis" style="font-size:0.75rem;padding:12px">Awaiting AI synthesis…</div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:10px">
+                        <button class="add-patient-btn" onclick="exportDemoReport()">📄 Export Assessment Report</button>
+                    </div>
+                </div>
+
+                <!-- Collapsible technical flow Console -->
+                <div class="tech-console">
+                    <div class="tech-header" onclick="toggleConsole()">
+                        <span class="tech-title">Technical Request Flow Console</span>
+                        <span id="console-arrow" style="font-size:0.6rem;color:var(--text-2)">▼</span>
+                    </div>
+                    <div id="tech-body" class="tech-body" style="display:none">
+                        <div class="tech-code" id="console-output">No request sent.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="audio.js"></script>
+<script src="demo-assessment.js"></script>
+</body>
+</html>

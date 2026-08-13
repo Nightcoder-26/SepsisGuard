@@ -32,6 +32,10 @@ def serve_dashboard():
 def serve_patient():
     return send_from_directory(FRONTEND_DIR, 'patient.html')
 
+@patients_bp.route('/demo-assessment')
+def serve_demo_assessment():
+    return send_from_directory(FRONTEND_DIR, 'demo-assessment.html')
+
 @patients_bp.route('/health', methods=['GET'])
 def health():
     """
