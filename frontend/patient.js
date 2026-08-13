@@ -23,6 +23,7 @@ let orbAnim    = null;
 let currentRisk = 0;
 let currentColor = '#10b981';
 let currentLevel = 'STABLE';
+let prevLevel = null;
 
 // ─── Socket.IO ──────────────────────────────────
 const socket = io(SERVER, {
@@ -68,6 +69,14 @@ function renderAll(data) {
     currentRisk  = risk;
     currentColor = color;
     currentLevel = level;
+
+    // Audio beeping on alert escalation
+    if (level === 'CRITICAL' && prevLevel !== 'CRITICAL') {
+        if (window.telemetryAudio) window.telemetryAudio.playBeep('CRITICAL');
+    } else if (level === 'WARNING' && prevLevel !== 'WARNING' && prevLevel !== 'CRITICAL') {
+        if (window.telemetryAudio) window.telemetryAudio.playBeep('WARNING');
+    }
+    prevLevel = level;
 
     // Header
     setText('pt-name',  data.name  || pid);

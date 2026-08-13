@@ -73,9 +73,15 @@ socket.on('telemetry', (pkt) => {
     if (selectedPid === pid) renderExplain(pid);
     if (modalPid === pid) updateModal(pkt);
 
-    // Alert toast on new critical
+    // Alert toast & medical sound beeps on alert state escalation
     const prev = prevAlerts[pid];
-    if (pkt.alert_level === 'CRITICAL' && prev !== 'CRITICAL') fireToast(pkt);
+    if (pkt.alert_level === 'CRITICAL' && prev !== 'CRITICAL') {
+        fireToast(pkt, 'CRITICAL');
+        if (window.telemetryAudio) window.telemetryAudio.playBeep('CRITICAL');
+    } else if (pkt.alert_level === 'WARNING' && prev !== 'WARNING' && prev !== 'CRITICAL') {
+        fireToast(pkt, 'WARNING');
+        if (window.telemetryAudio) window.telemetryAudio.playBeep('WARNING');
+    }
     prevAlerts[pid] = pkt.alert_level;
 
     // Anomaly flash
@@ -282,11 +288,16 @@ function addTimelineEvent(pid, evt, prepend) {
 }
 
 // ─── ALERT TOAST ───────────────────────────────────
-function fireToast(pkt) {
+function fireToast(pkt, level = 'CRITICAL') {
     const overlay = document.getElementById('alert-overlay');
+    if (!overlay) return;
     const t = document.createElement('div');
-    t.className = 'alert-toast';
-    t.innerHTML = `<div class="at-icon">🚨</div><div><div class="at-title">CRITICAL — ${pkt.bed || pkt.pid}</div><div class="at-msg">${pkt.name}: ${pkt.risk_score?.toFixed(0)}% · ${(pkt.explanation || [])[0] || 'Immediate intervention'}</div></div>`;
+    const isCrit = level === 'CRITICAL';
+    t.className = 'alert-toast' + (isCrit ? '' : ' warning-toast');
+    const icon = isCrit ? '🚨' : '⚠️';
+    const titleClass = isCrit ? 'at-title' : 'at-title warn';
+    const titleText = isCrit ? 'CRITICAL ALERT' : 'WARNING ALERT';
+    t.innerHTML = `<div class="at-icon">${icon}</div><div><div class="${titleClass}">${titleText} — ${pkt.bed || pkt.pid}</div><div class="at-msg">${pkt.name}: ${pkt.risk_score?.toFixed(0)}% · ${(pkt.explanation || [])[0] || 'Elevated sepsis risk'}</div></div>`;
     overlay.prepend(t);
     setTimeout(() => t.remove(), 6500);
 }

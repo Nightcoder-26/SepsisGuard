@@ -32,7 +32,10 @@
                     <div class="nav-item" title="Settings"><i data-lucide="settings"></i></div>
                 </div>
             </div>
-            <div class="navbar-right">
+            <div class="navbar-right" style="display:flex;align-items:center;gap:10px">
+                <button class="audio-toggle-btn" onclick="telemetryAudio.toggleSound()" title="Toggle Medical Alert Audio Beeps">
+                    <span>🔊</span><span>AUDIO: ON</span>
+                </button>
                 <div class="nav-item" title="Logout"><i data-lucide="log-out"></i></div>
             </div>
         </nav>
@@ -232,6 +235,7 @@
         </main>
     </div>
 
+    <script src="audio.js"></script>
     <script src="script.js"></script>
     <script>
         lucide.createIcons();

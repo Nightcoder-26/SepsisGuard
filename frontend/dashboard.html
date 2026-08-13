@@ -37,6 +37,9 @@
         <div class="sdot" id="conn-dot"></div>
         <span id="conn-lbl" style="font-size:.63rem">Connecting…</span>
     </div>
+    <button class="audio-toggle-btn" onclick="telemetryAudio.toggleSound()" title="Toggle Medical Alert Audio Beeps">
+        <span>🔊</span><span>AUDIO: ON</span>
+    </button>
     <div class="cb-clock" id="clock">00:00:00</div>
 </header>
 
@@ -167,6 +170,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.2/socket.io.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="audio.js"></script>
 <script src="dashboard.js"></script>
 </body>
 </html>

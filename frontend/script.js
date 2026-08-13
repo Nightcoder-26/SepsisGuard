@@ -157,14 +157,16 @@ function updateUI(res) {
     
     // Color & Class handling
     let accentColor = "#10b981"; // Success
-    if (score > 70) {
+    if (score >= 50 || res.alert_level === 'CRITICAL') {
         accentColor = "#ef4444"; // Danger
         gaugeFillEl.classList.add("critical-glow");
         alertBox.classList.remove("hidden");
-    } else if (score > 30) {
+        if (window.telemetryAudio) window.telemetryAudio.playBeep('CRITICAL');
+    } else if (score >= 27 || res.alert_level === 'WARNING') {
         accentColor = "#f59e0b"; // Warning
         gaugeFillEl.classList.remove("critical-glow");
         alertBox.classList.add("hidden");
+        if (window.telemetryAudio) window.telemetryAudio.playBeep('WARNING');
     } else {
         gaugeFillEl.classList.remove("critical-glow");
         alertBox.classList.add("hidden");
